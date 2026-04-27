@@ -474,9 +474,6 @@ select option{background:#1b2120;}
     <div class="fl"><div class="fl-label">Observações</div>
       <textarea id="mat-obs" style="width:100%;padding:9px 12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;height:60px;" placeholder="Anomalias visuais, contaminação, outros..." oninput="matFieldChanged()"></textarea></div>
 
-    <!-- Responsável -->
-    <div class="fl"><div class="fl-label">Aprovado por</div>
-      <input type="text" id="mat-aprovado" placeholder="Nome do inspetor" oninput="matFieldChanged()"></div>
 
   </div>
   <div class="ck-footer">
@@ -680,15 +677,15 @@ const MODULES = [
     {t:'Primeiro artigo aprovado antes de série',s:'PPAP ou FAI documentado'},
   ]},
   { id:'pecas', icon:'🔷', name:'Peças produzidas', sub:'9 pts', items:[
-    {t:'Ausência de vazios, bolhas e porosidade',s:'Visual 100% — nenhum vazio em zona funcional'},
-    {t:'Ausência de rebarbas fora de tolerância',s:'Rebarba ≤ 0,3 mm em zonas de vedação'},
-    {t:'Cotas críticas dentro de tolerância (amostragem)',s:'Mín. 5 peças/hora — registo DIM-02'},
-    {t:'Cor e tonalidade uniformes',s:'Comparar com amostra padrão aprovada'},
-    {t:'Ausência de empeno excessivo',s:'Planeza ≤ tolerância do desenho'},
-    {t:'Marcação de lote/data visível e legível',s:'Localização e formato conforme molde'},
-    {t:'Insertos metálicos corretamente posicionados',s:'Desvio ≤ 0,5 mm; torque mín. conforme tabela'},
-    {t:'Ausência de delaminação (teste de tap)',s:'Som oco = NOK; registar posição'},
-    {t:'Peças NOK segregadas e identificadas',s:'Caixa vermelha com etiqueta de rejeição'},
+    {t:'Ausência de Crateras?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Falta de Enchimento?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Esgaçados?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Bolhas?',s:'Verificação Visual 100%'},
+    {t:'Insertos Nok?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Fissuras?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Partidos?',s:'Verificação Visual 100%'},
+    {t:'Ausência de Ondulações?',s:'Verificação Visual 100%'},
+    {t:'Peças NOK segregadas e identificadas',s:'Contentor separado com etiqueta de rejeição/sob condição'},
   ]},
   { id:'posto_trab', icon:'🏭', name:'Posto de trabalho', sub:'6 pts', items:[
     {t:'Área limpa e organizada (5S)',s:'Sem resíduos, ferramentas no local correto'},
