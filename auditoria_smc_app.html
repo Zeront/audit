@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AuditSMC</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0f0e;--bg2:#141918;--bg3:#1b2120;--bg4:#222927;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#e4ebe4;--text2:#7a9080;--text3:#4a5e50;
+  --green:#4cff82;--green-d:rgba(76,255,130,0.10);--green-d2:rgba(76,255,130,0.05);
+  --red:#ff4f4f;--red-d:rgba(255,79,79,0.13);--red-d2:rgba(255,79,79,0.06);
+  --amber:#ffb347;--amber-d:rgba(255,179,71,0.12);
+  --blue:#5ab4ff;--blue-d:rgba(90,180,255,0.12);
+  --purple:#b47fff;--purple-d:rgba(180,127,255,0.12);
+  /* SEVERITY COLOURS */
+  --sev0:#ff2222;--sev0-d:rgba(255,34,34,0.14);   /* Parar produção */
+  --sev1:#ff7a00;--sev1-d:rgba(255,122,0,0.12);    /* Inspeção 100% */
+  --sev2:#ffd000;--sev2-d:rgba(255,208,0,0.10);    /* Retrabalho */
+  --sev3:#5ab4ff;--sev3-d:rgba(90,180,255,0.10);   /* Pontuais */
+  --sev4:#7a9080;--sev4-d:rgba(122,144,128,0.10);  /* Observações */
+  --r:10px;--rl:16px;
+}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;user-select:none;}
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+input,select,textarea,button{font-family:'Syne',sans-serif;}
+button{cursor:pointer;}
+
+/* ── SEVERITY SYSTEM ── */
+.sev-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;border:0.5px solid;}
+.sev-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sev-0{background:var(--sev0-d);border-color:var(--sev0);color:var(--sev0);}
+.sev-0 .sev-dot{background:var(--sev0);}
+.sev-1{background:var(--sev1-d);border-color:var(--sev1);color:var(--sev1);}
+.sev-1 .sev-dot{background:var(--sev1);}
+.sev-2{background:var(--sev2-d);border-color:var(--sev2);color:var(--sev2);}
+.sev-2 .sev-dot{background:var(--sev2);}
+.sev-3{background:var(--sev3-d);border-color:var(--sev3);color:var(--sev3);}
+.sev-3 .sev-dot{background:var(--sev3);}
+.sev-4{background:var(--sev4-d);border-color:var(--sev4);color:var(--sev4);}
+.sev-4 .sev-dot{background:var(--sev4);}
+
+/* ── LOGIN ── */
+#s-login{align-items:center;justify-content:center;padding:1.5rem;}
+.login-box{width:100%;max-width:360px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--rl);padding:2rem 1.75rem;}
+.logo-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--green);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.5rem;}
+.login-h{font-size:24px;font-weight:700;line-height:1.2;margin-bottom:1.75rem;}
+.login-h span{color:var(--green);}
+.fl{margin-bottom:.9rem;}
+.fl-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px;}
+select,input[type=text]{width:100%;padding:10px 13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;appearance:none;-webkit-appearance:none;}
+select option{background:#1b2120;}
+.btn-p{width:100%;padding:13px;background:var(--green);color:#081008;border:none;border-radius:var(--r);font-size:15px;font-weight:700;margin-top:.5rem;}
+.btn-ghost{width:100%;padding:10px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:13px;margin-top:8px;}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:.9rem 1.1rem;border-bottom:0.5px solid var(--border);flex-shrink:0;}
+.btn-back{background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:7px 12px;color:var(--text);font-size:13px;}
+.topbar-title{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.topbar-right{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);flex-shrink:0;}
+
+/* ── HOME ── */
+.home-info{padding:.9rem 1.1rem .4rem;display:flex;justify-content:space-between;align-items:flex-end;}
+.home-user{font-size:18px;font-weight:700;}
+.home-subinfo{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);text-align:right;line-height:1.7;}
+.pstrip-wrap{padding:0 1.1rem;}
+.pstrip{height:3px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:5px;}
+.pstrip-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s;}
+.pmeta{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-bottom:.75rem;}
+
+/* SEVERITY SUMMARY BAR on home */
+.sev-bar{margin:0 1.1rem .75rem;display:flex;gap:6px;flex-wrap:wrap;}
+.sev-bar-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:0.5px solid;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:opacity .15s;}
+.sev-bar-pill:active{opacity:.7;}
+.sev-bar-count{font-size:14px;font-weight:700;}
+
+.section-head{padding:.3rem 1.1rem .25rem;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;}
+.posto-list{padding:0 1.1rem;margin-bottom:.5rem;}
+.posto-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.posto-row:last-child{border:none;}
+.posto-name{font-size:14px;font-weight:500;flex:1;}
+.posto-sev-dots{display:flex;gap:3px;align-items:center;}
+.posto-sev-dot{width:8px;height:8px;border-radius:50%;}
+.ps-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:5px;border:0.5px solid var(--border2);color:var(--text2);}
+.ps-badge.ok{background:var(--green-d);border-color:var(--green);color:var(--green);}
+.ps-badge.nok{background:var(--red-d);border-color:var(--red);color:var(--red);}
+.ps-badge.partial{background:var(--amber-d);border-color:var(--amber);color:var(--amber);}
+.btn-posto{background:var(--bg3);border:0.5px solid var(--border2);border-radius:7px;padding:6px 13px;color:var(--text);font-size:12px;font-weight:600;}
+.btn-add-posto{margin:0 1.1rem .5rem;width:calc(100% - 2.2rem);padding:9px;background:transparent;border:0.5px dashed var(--border2);border-radius:var(--r);color:var(--text2);font-size:13px;}
+.home-actions{display:flex;gap:8px;padding:0 1.1rem;margin-bottom:1.5rem;}
+.btn-monitor{flex:1;padding:12px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:13px;font-weight:600;}
+.btn-monitor.highlight{border-color:var(--sev0);color:var(--sev0);animation:pulse-border 2s infinite;}
+@keyframes pulse-border{0%,100%{box-shadow:0 0 0 0 rgba(255,34,34,0.3);}50%{box-shadow:0 0 0 4px rgba(255,34,34,0.08);}}
+.btn-finish-home{flex:2;padding:12px;background:var(--green);color:#081008;border:none;border-radius:var(--r);font-size:13px;font-weight:700;display:none;}
+.btn-finish-home.on{display:block;}
+
+/* ── POSTO ── */
+#s-posto{padding:0;}
+.posto-sev-summary{display:flex;gap:5px;flex-wrap:wrap;padding:.6rem 1.1rem .1rem;}
+.modules-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:.5rem 1.1rem .9rem;}
+.mod-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rl);padding:1rem .9rem;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s;}
+.mod-card.done{border-color:var(--green);}
+.mod-card.sev-0-card{border-color:var(--sev0)!important;}
+.mod-card.sev-1-card{border-color:var(--sev1)!important;}
+.mod-card.sev-2-card{border-color:var(--sev2)!important;}
+.mod-card.sev-3-card{border-color:var(--sev3)!important;}
+.mod-card-badge{position:absolute;top:8px;right:10px;font-size:11px;font-weight:700;color:var(--green);}
+.mod-icon{font-size:20px;margin-bottom:7px;}
+.mod-name{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:3px;}
+.mod-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.mod-sev-row{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap;}
+
+/* ── CHECKLIST ── */
+#s-checklist{padding:0;}
+.ck-items{flex:1;overflow-y:auto;padding:.7rem 1.1rem 5.5rem;}
+.ck-item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:9px;transition:border-color .15s,background .15s;}
+.ck-item.ok{border-color:var(--green);background:var(--green-d2);}
+.ck-item.nok-0{border-color:var(--sev0);background:var(--sev0-d);}
+.ck-item.nok-1{border-color:var(--sev1);background:var(--sev1-d);}
+.ck-item.nok-2{border-color:var(--sev2);background:var(--sev2-d);}
+.ck-item.nok-3{border-color:var(--sev3);background:var(--sev3-d);}
+.ck-item.nok-4{border-color:var(--sev4);background:var(--sev4-d);}
+.ci-text{font-size:14px;font-weight:500;margin-bottom:3px;line-height:1.4;}
+.ci-spec{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-bottom:11px;}
+.ci-btns{display:flex;gap:7px;margin-bottom:8px;}
+.btn-ok-ck,.btn-nok-ck{flex:1;padding:10px;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;font-weight:600;transition:all .12s;}
+.btn-ok-ck.on{background:var(--green);color:#081008;border-color:var(--green);}
+.btn-nok-ck.on{background:var(--red);color:#fff;border-color:var(--red);}
+.nok-extra{display:none;margin-top:4px;}
+.ck-item[class*="nok-"] .nok-extra{display:block;}
+/* Severity picker */
+.sev-picker{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.sev-pick-btn{padding:6px 10px;border-radius:7px;border:0.5px solid var(--border2);background:transparent;font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);transition:all .12s;display:flex;align-items:center;gap:4px;}
+.sev-pick-btn .spdot{width:6px;height:6px;border-radius:50%;}
+.nok-obs{width:100%;padding:8px 11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;height:52px;margin-bottom:7px;}
+.nok-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.tag-btn{padding:5px 10px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Mono',monospace;font-size:10px;transition:all .12s;}
+.tag-btn.on-block{background:var(--red-d);border-color:var(--red);color:var(--red);}
+.tag-btn.on-proc{background:var(--purple-d);border-color:var(--purple);color:var(--purple);}
+.proc-form{margin-top:7px;background:var(--bg3);border:0.5px solid var(--purple);border-radius:8px;padding:10px;}
+.proc-form-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--purple);margin-bottom:5px;}
+.proc-form textarea{width:100%;padding:7px 10px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;resize:none;height:46px;}
+.proc-who{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.proc-who-btn{padding:4px 9px;border-radius:5px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Mono',monospace;font-size:10px;transition:all .12s;}
+.proc-who-btn.on{background:var(--purple-d);border-color:var(--purple);color:var(--purple);}
+.ck-footer{position:fixed;bottom:0;left:0;right:0;padding:.9rem 1.1rem;background:var(--bg);border-top:0.5px solid var(--border);}
+.btn-save{width:100%;padding:13px;background:var(--green);color:#081008;border:none;border-radius:var(--r);font-size:15px;font-weight:700;}
+.btn-save:disabled{opacity:.35;cursor:default;}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,12,8,.97);z-index:200;display:none;align-items:center;justify-content:center;padding:1.25rem;overflow-y:auto;}
+.modal-overlay.on{display:flex;}
+.modal-card{width:100%;max-width:390px;background:var(--bg2);border-radius:var(--rl);padding:1.5rem;}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:.2rem;}
+.modal-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-bottom:.9rem;}
+.modal-posto-tag{display:inline-block;padding:3px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;margin-bottom:.9rem;background:var(--amber-d);border:0.5px solid var(--amber);color:var(--amber);}
+.modal-summary{background:var(--bg3);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);line-height:1.8;max-height:150px;overflow-y:auto;margin-bottom:.9rem;}
+.modal-summary b{color:var(--text);}
+.modal-section{margin-bottom:.9rem;}
+.modal-section-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:.4rem;}
+.tog{width:40px;height:22px;border-radius:11px;background:var(--bg3);border:0.5px solid var(--border2);position:relative;transition:background .2s;}
+.tog.on{background:var(--red);border-color:var(--red);}
+.tog-k{width:16px;height:16px;border-radius:50%;background:var(--text2);position:absolute;top:3px;left:3px;transition:left .2s,background .2s;}
+.tog.on .tog-k{left:21px;background:#fff;}
+.toggle-label{font-size:13px;font-weight:500;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:6px 12px;border-radius:7px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Mono',monospace;font-size:10px;transition:all .12s;}
+.chip.on{background:var(--blue-d);border-color:var(--blue);color:var(--blue);}
+.chip-proc.on{background:var(--purple-d);border-color:var(--purple);color:var(--purple);}
+.modal-btns{display:flex;gap:8px;margin-top:.75rem;}
+.btn-mc{flex:1;padding:11px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:14px;}
+.btn-mr{flex:2;padding:11px;background:var(--red);border:none;border-radius:var(--r);color:#fff;font-size:14px;font-weight:700;}
+.btn-mp{flex:2;padding:11px;background:var(--purple);border:none;border-radius:var(--r);color:#fff;font-size:14px;font-weight:700;}
+
+/* ── MONITOR SCREEN ── */
+#s-monitor{padding:0;background:var(--bg);}
+.monitor-topbar{display:flex;align-items:center;gap:10px;padding:.9rem 1.1rem;border-bottom:0.5px solid var(--border);}
+.monitor-clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);margin-left:auto;}
+.btn-projection{padding:7px 13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;}
+.monitor-body{flex:1;overflow-y:auto;padding:.9rem 1.1rem 2rem;}
+
+/* KPI row */
+.mon-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:1rem;}
+.mon-kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 8px;text-align:center;}
+.mon-kpi-val{font-size:18px;font-weight:700;}
+.mon-kpi-val.g{color:var(--green);}
+.mon-kpi-val.r{color:var(--red);}
+.mon-kpi-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);margin-top:2px;}
+
+/* Severity breakdown */
+.mon-sev-list{margin-bottom:1rem;}
+.mon-sev-row{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;margin-bottom:5px;border:0.5px solid;}
+.mon-sev-icon{font-size:16px;flex-shrink:0;}
+.mon-sev-info{flex:1;}
+.mon-sev-label{font-size:13px;font-weight:600;}
+.mon-sev-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-top:1px;}
+.mon-sev-num{font-size:22px;font-weight:700;flex-shrink:0;}
+
+/* Live alerts feed */
+.mon-section-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;}
+.alert-feed{display:flex;flex-direction:column;gap:7px;margin-bottom:1rem;}
+.alert-card{border-radius:var(--r);padding:11px 13px;border:0.5px solid;position:relative;overflow:hidden;}
+.alert-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.alert-card.ac-0::before{background:var(--sev0);}
+.alert-card.ac-1::before{background:var(--sev1);}
+.alert-card.ac-2::before{background:var(--sev2);}
+.alert-card.ac-3::before{background:var(--sev3);}
+.alert-card.ac-4::before{background:var(--sev4);}
+.alert-top{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.alert-posto-tag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);}
+.alert-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-left:auto;}
+.alert-text{font-size:12px;font-weight:500;line-height:1.4;margin-bottom:4px;}
+.alert-obs{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+
+/* Posto status grid */
+.mon-posto-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem;}
+.mon-posto-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 13px;display:flex;align-items:center;gap:10px;}
+.mon-posto-name{font-size:13px;font-weight:600;flex:1;}
+.mon-posto-pct{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-right:4px;}
+.mon-posto-strip{width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.mon-posto-strip-fill{height:100%;background:var(--green);border-radius:2px;transition:width .4s;}
+.mon-posto-dots{display:flex;gap:3px;margin-left:8px;}
+.mpd{width:8px;height:8px;border-radius:50%;}
+
+/* ── PROJECTION MODE ── */
+#s-projection{background:#080a08;padding:0;}
+.proj-body{flex:1;display:flex;flex-direction:column;padding:1.5rem;}
+.proj-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+.proj-title{font-size:22px;font-weight:700;}
+.proj-title span{color:var(--green);}
+.proj-clock{font-family:'DM Mono',monospace;font-size:14px;color:var(--text2);}
+.proj-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+.proj-kpi{background:var(--bg2);border:0.5px solid var(--border2);border-radius:14px;padding:1.2rem;text-align:center;}
+.proj-kpi-val{font-size:36px;font-weight:700;line-height:1;}
+.proj-kpi-val.g{color:var(--green);}
+.proj-kpi-val.r{color:var(--red);}
+.proj-kpi-lbl{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);margin-top:5px;}
+.proj-main{display:grid;grid-template-columns:1fr 1.2fr;gap:12px;flex:1;}
+.proj-left,.proj-right{display:flex;flex-direction:column;gap:10px;}
+.proj-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:1.2rem;flex:1;overflow:hidden;}
+.proj-panel-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:.9rem;}
+.proj-sev-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.proj-sev-row:last-child{border:none;}
+.proj-sev-label{font-size:14px;font-weight:600;flex:1;}
+.proj-sev-bar-wrap{width:80px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.proj-sev-bar-fill{height:100%;border-radius:3px;transition:width .5s;}
+.proj-sev-num{font-size:20px;font-weight:700;min-width:28px;text-align:right;}
+.proj-posto-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);}
+.proj-posto-row:last-child{border:none;}
+.proj-posto-name{font-size:14px;font-weight:600;flex:1;}
+.proj-posto-pct-wrap{display:flex;align-items:center;gap:8px;}
+.proj-posto-strip{width:70px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.proj-posto-strip-fill{height:100%;border-radius:3px;background:var(--green);}
+.proj-posto-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);min-width:30px;}
+.proj-alert-item{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);}
+.proj-alert-item:last-child{border:none;}
+.proj-alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.proj-alert-text{font-size:12px;line-height:1.4;}
+.proj-alert-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-top:2px;}
+.btn-exit-proj{position:fixed;top:1rem;right:1rem;padding:8px 14px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;z-index:10;}
+
+/* ── REPORT ── */
+#s-report{padding:0;}
+.report-body{flex:1;overflow-y:auto;padding:1rem 1.1rem 2rem;}
+.report-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:1rem;}
+.kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:11px 8px;text-align:center;}
+.kpi-val{font-size:20px;font-weight:700;}
+.kpi-val.g{color:var(--green);}
+.kpi-val.r{color:var(--red);}
+.kpi-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);margin-top:2px;}
+.report-sev-summary{margin-bottom:1rem;display:flex;flex-direction:column;gap:5px;}
+.rss-row{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;border:0.5px solid;}
+.rss-label{font-size:12px;font-weight:600;flex:1;}
+.rss-count{font-size:16px;font-weight:700;}
+.sec-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin:1rem 0 .5rem;}
+.report-posto-block{margin-bottom:1.25rem;}
+.rpb-head{display:flex;align-items:center;gap:7px;margin-bottom:.5rem;flex-wrap:wrap;}
+.rpb-name{font-size:15px;font-weight:700;}
+.rpb-tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:5px;}
+.rpb-tag.ok{background:var(--green-d);border:0.5px solid var(--green);color:var(--green);}
+.rpb-tag.nok{background:var(--red-d);border:0.5px solid var(--red);color:var(--red);}
+.rpb-tag.skip{background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);}
+.rpb-nok-item{border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:3px solid;}
+.rpb-nok-header{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.rpb-nok-mod{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);}
+.rpb-nok-text{font-size:12px;font-weight:500;margin-bottom:3px;}
+.rpb-nok-obs{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.rpb-proc-item{background:var(--purple-d);border:0.5px solid var(--purple);border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.rpb-proc-mod{font-family:'DM Mono',monospace;font-size:9px;color:var(--purple);margin-bottom:2px;}
+.rpb-proc-text{font-size:12px;font-weight:500;margin-bottom:3px;}
+.rpb-proc-detail{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.report-sign{margin-top:1.5rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:13px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);}
+.report-sign b{display:block;font-size:13px;color:var(--text);margin-top:4px;}
+
+/* ── ADMIN (condensed) ── */
+#s-admin{padding:0;}
+.admin-body{flex:1;overflow-y:auto;padding:.9rem 1.1rem 3rem;}
+.admin-section{margin-bottom:1.5rem;}
+.admin-section-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:.6rem;padding-bottom:.35rem;border-bottom:0.5px solid var(--border);}
+.admin-tabs{display:flex;gap:0;margin-bottom:1rem;border:0.5px solid var(--border2);border-radius:var(--r);overflow:hidden;}
+.admin-tab{flex:1;padding:9px;background:transparent;border:none;color:var(--text2);font-size:11px;font-weight:500;}
+.admin-tab.on{background:var(--bg3);color:var(--text);}
+.admin-posto-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+.admin-posto-head{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;}
+.admin-posto-head:hover{background:var(--bg3);}
+.admin-posto-name{font-size:14px;font-weight:600;flex:1;}
+.admin-posto-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.admin-posto-body{padding:0 13px 13px;border-top:0.5px solid var(--border);display:none;}
+.admin-posto-body.open{display:block;}
+.admin-posto-rename{display:flex;gap:7px;margin:10px 0;}
+.admin-posto-rename input{flex:1;padding:8px 11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:7px;color:var(--text);font-size:13px;}
+.btn-rename{padding:8px 13px;background:transparent;border:0.5px solid var(--border2);border-radius:7px;color:var(--text2);font-size:12px;}
+.admin-mod-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;}
+.admin-mod-toggles{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.mod-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg3);border-radius:7px;}
+.mod-toggle-name{font-size:12px;font-weight:500;}
+.mod-toggle-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);margin-top:1px;}
+.tog-sm{width:34px;height:20px;border-radius:10px;background:var(--bg4);border:0.5px solid var(--border2);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tog-sm.on{background:var(--green);border-color:var(--green);}
+.tog-sm-k{width:14px;height:14px;border-radius:50%;background:var(--text3);position:absolute;top:3px;left:3px;transition:left .2s,background .2s;}
+.tog-sm.on .tog-sm-k{left:17px;background:#fff;}
+.btn-del-posto{width:100%;padding:8px;background:transparent;border:0.5px solid var(--red);border-radius:7px;color:var(--red);font-size:12px;margin-top:6px;}
+.admin-module-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+.admin-module-head{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;}
+.admin-module-head:hover{background:var(--bg3);}
+.admin-module-body{padding:0 13px 13px;border-top:0.5px solid var(--border);display:none;}
+.admin-module-body.open{display:block;}
+.admin-item-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border);}
+.admin-item-row:last-child{border:none;}
+.admin-item-texts{flex:1;}
+.admin-item-t{font-size:12px;font-weight:500;margin-bottom:2px;}
+.admin-item-s{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.admin-item-edit{display:none;margin-top:6px;flex-direction:column;gap:5px;}
+.admin-item-edit.open{display:flex;}
+.admin-item-edit input,.admin-item-edit textarea{padding:6px 9px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;width:100%;}
+.admin-item-edit textarea{resize:none;height:38px;font-family:'DM Mono',monospace;font-size:11px;}
+.admin-item-actions{display:flex;gap:5px;margin-top:3px;}
+.btn-xs{padding:4px 9px;border-radius:5px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Mono',monospace;}
+.btn-xs.del{border-color:var(--red);color:var(--red);}
+.btn-xs.save{border-color:var(--green);color:var(--green);}
+.btn-add-item{width:100%;padding:8px;background:transparent;border:0.5px dashed var(--border2);border-radius:7px;color:var(--text2);font-size:12px;margin-top:7px;}
+.admin-notif-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);margin-bottom:7px;padding:10px 13px;display:flex;align-items:center;gap:10px;}
+.admin-notif-name{font-size:13px;font-weight:500;flex:1;}
+.btn-del-notif{padding:4px 9px;border-radius:5px;border:0.5px solid var(--red);background:transparent;color:var(--red);font-size:11px;font-family:'DM Mono',monospace;}
+.admin-add-notif{display:flex;gap:7px;margin-top:6px;}
+.admin-add-notif input{flex:1;padding:8px 11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:7px;color:var(--text);font-size:13px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:9px 16px;font-family:'DM Mono',monospace;font-size:12px;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:500;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.g{border-color:var(--green);color:var(--green);}
+.toast.r{border-color:var(--red);color:var(--red);}
+.toast.p{border-color:var(--purple);color:var(--purple);}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen active" id="s-login">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem;">
+  <div class="login-box">
+    <div class="logo-tag">AuditSMC v4.0</div>
+    <div class="login-h">Auditoria<br>Diária <span>SMC</span></div>
+    <div class="fl"><div class="fl-label">Inspetor</div>
+      <select id="l-user"><option value="">Selecionar...</option><option>Carlos Ferreira</option><option>Ana Sousa</option><option>Miguel Costa</option></select></div>
+    <div class="fl"><div class="fl-label">Turno</div>
+      <select id="l-turno"><option value="Manhã">Manhã (06h–14h)</option><option value="Tarde">Tarde (14h–22h)</option><option value="Noite">Noite (22h–06h)</option></select></div>
+    <button class="btn-p" onclick="doLogin()">Iniciar auditoria</button>
+    <button class="btn-ghost" onclick="showScreen('s-admin');renderAdminPostos();">⚙ Painel de administração</button>
+  </div>
+  </div>
+</div>
+
+<!-- ══ HOME ══ -->
+<div class="screen" id="s-home">
+  <div class="home-info">
+    <div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:.1em;">INSPETOR</div><div class="home-user" id="h-user">—</div></div>
+    <div class="home-subinfo" id="h-date">—</div>
+  </div>
+  <div class="pstrip-wrap">
+    <div class="pstrip"><div class="pstrip-fill" id="h-pbar" style="width:0%"></div></div>
+    <div class="pmeta"><span id="h-done">—</span><span id="h-pct">0%</span></div>
+  </div>
+  <div class="sev-bar" id="home-sev-bar"></div>
+  <div class="section-head">Postos</div>
+  <div class="posto-list" id="posto-list"></div>
+  <button class="btn-add-posto" onclick="openAddPosto()">+ Adicionar posto</button>
+  <div class="home-actions">
+    <button class="btn-monitor" id="btn-monitor" onclick="showMonitor()">📊 Monitorização</button>
+    <button class="btn-finish-home" id="btn-finish" onclick="showReport()">Fechar turno →</button>
+  </div>
+</div>
+
+<!-- ══ POSTO ══ -->
+<div class="screen" id="s-posto">
+  <div class="topbar">
+    <button class="btn-back" onclick="goHome()">← Postos</button>
+    <div class="topbar-title" id="posto-title">—</div>
+    <div class="topbar-right" id="posto-prog-top">—</div>
+  </div>
+  <div class="posto-sev-summary" id="posto-sev-summary"></div>
+  <div class="modules-grid" id="modules-grid"></div>
+</div>
+
+<!-- ══ CHECKLIST ══ -->
+<div class="screen" id="s-checklist">
+  <div class="topbar">
+    <button class="btn-back" onclick="goPosto()">← Módulos</button>
+    <div class="topbar-title" id="ck-title">—</div>
+    <div class="topbar-right" id="ck-prog">0/0</div>
+  </div>
+  <div class="ck-items" id="ck-items"></div>
+  <div class="ck-footer">
+    <button class="btn-save" id="btn-save" onclick="saveChecklist()" disabled>Guardar módulo</button>
+  </div>
+</div>
+
+<!-- ══ MATÉRIA-PRIMA FORM ══ -->
+<div class="screen" id="s-materia">
+  <div class="topbar">
+    <button class="btn-back" onclick="goPosto()">← Módulos</button>
+    <div class="topbar-title" id="mat-title">Matéria-prima</div>
+    <div class="topbar-right" id="mat-status">—</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:.75rem 1.1rem 6rem;" id="mat-body">
+
+    <!-- Identificação -->
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Identificação do material</div>
+
+    <div class="fl"><div class="fl-label">Referência / Identificação</div>
+      <input type="text" id="mat-ref" placeholder="Ex: SMC-HF-4510" oninput="matFieldChanged()"></div>
+
+    <div class="fl"><div class="fl-label">Lote fornecedor</div>
+      <input type="text" id="mat-lote" placeholder="Ex: LOT-2024-0312" oninput="matFieldChanged()"></div>
+
+    <div class="fl"><div class="fl-label">Nº bobine</div>
+      <input type="text" id="mat-bobine" placeholder="Ex: BOB-001" oninput="matFieldChanged()"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="fl"><div class="fl-label">Data de fabrico</div>
+        <input type="date" id="mat-fabrico" oninput="matFieldChanged()"></div>
+      <div class="fl"><div class="fl-label">Data de validade</div>
+        <input type="date" id="mat-validade" oninput="matFieldChanged()"></div>
+    </div>
+
+    <!-- Verificação de validade -->
+    <button onclick="checkValidade()" style="width:100%;padding:12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;font-weight:600;margin-bottom:.75rem;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span>🗓</span> Verificar validade
+    </button>
+    <div id="mat-validade-result" style="display:none;border-radius:var(--r);padding:11px 13px;margin-bottom:.75rem;font-size:13px;font-weight:500;"></div>
+
+    <!-- Foto da ficha -->
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;margin-top:.25rem;">Ficha de identificação</div>
+
+    <div id="mat-photo-preview" style="display:none;margin-bottom:8px;">
+      <img id="mat-photo-img" style="width:100%;border-radius:var(--r);border:0.5px solid var(--border2);max-height:220px;object-fit:cover;" />
+      <div style="display:flex;gap:7px;margin-top:6px;">
+        <div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--green);padding:6px 0;">✓ Foto registada</div>
+        <button onclick="removePhoto()" style="padding:5px 12px;background:transparent;border:0.5px solid var(--red);border-radius:6px;color:var(--red);font-size:11px;">Remover</button>
+      </div>
+    </div>
+
+    <label for="mat-photo-input" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:var(--bg3);border:0.5px dashed var(--border2);border-radius:var(--r);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:.75rem;" id="mat-photo-btn">
+      <span>📷</span> Fotografar ficha de identificação
+    </label>
+    <input type="file" id="mat-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto(this)">
+
+    <!-- Observações -->
+    <div class="fl"><div class="fl-label">Observações</div>
+      <textarea id="mat-obs" style="width:100%;padding:9px 12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;height:60px;" placeholder="Anomalias visuais, contaminação, outros..." oninput="matFieldChanged()"></textarea></div>
+
+    <!-- Responsável -->
+    <div class="fl"><div class="fl-label">Aprovado por</div>
+      <input type="text" id="mat-aprovado" placeholder="Nome do inspetor" oninput="matFieldChanged()"></div>
+
+  </div>
+  <div class="ck-footer">
+    <button class="btn-save" id="btn-save-mat" onclick="saveMateria()" disabled>Guardar registo</button>
+  </div>
+</div>
+
+<!-- ══ MONITOR ══ -->
+<div class="screen" id="s-monitor">
+  <div class="monitor-topbar">
+    <button class="btn-back" onclick="goHome()">← Início</button>
+    <div class="topbar-title">Monitorização</div>
+    <div class="monitor-clock" id="mon-clock">—</div>
+    <button class="btn-projection" onclick="showProjection()">⛶ Proj.</button>
+  </div>
+  <div style="padding:.6rem 1.1rem .2rem;display:flex;gap:7px;">
+    <button onclick="openManualAlert()" style="flex:1;padding:9px 0;background:var(--sev0-d);border:0.5px solid var(--sev0);border-radius:var(--r);color:var(--sev0);font-size:12px;font-weight:600;">🛑 Alerta crítico</button>
+    <button onclick="openClientAlert()" style="flex:1;padding:9px 0;background:var(--amber-d);border:0.5px solid var(--amber);border-radius:var(--r);color:var(--amber);font-size:12px;font-weight:600;">📣 Reclamação cliente</button>
+  </div>
+  <div class="monitor-body" id="monitor-body"></div>
+</div>
+
+<!-- ══ PROJECTION ══ -->
+<div class="screen" id="s-projection">
+  <button class="btn-exit-proj" onclick="showScreen('s-monitor');renderMonitor();">✕ Sair</button>
+  <div class="proj-body" id="proj-body"></div>
+</div>
+
+<!-- ══ REPORT ══ -->
+<div class="screen" id="s-report">
+  <div class="topbar">
+    <button class="btn-back" onclick="goHome()">← Início</button>
+    <div class="topbar-title">Relatório final</div>
+    <div class="topbar-right" id="r-date">—</div>
+  </div>
+  <div class="report-body" id="report-body"></div>
+</div>
+
+<!-- ══ ADMIN ══ -->
+<div class="screen" id="s-admin">
+  <div class="topbar">
+    <button class="btn-back" onclick="showScreen('s-login')">← Voltar</button>
+    <div class="topbar-title">Administração</div>
+  </div>
+  <div style="padding:.5rem 1.1rem 0;">
+    <div class="admin-tabs">
+      <button class="admin-tab on" onclick="switchAdminTab('postos',this)">Postos</button>
+      <button class="admin-tab" onclick="switchAdminTab('modulos',this)">Módulos</button>
+      <button class="admin-tab" onclick="switchAdminTab('notificacoes',this)">Notificações</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <div id="admin-tab-postos">
+      <div class="admin-section">
+        <div class="admin-section-title">Postos ativos</div>
+        <div id="admin-postos-list"></div>
+        <button class="btn-add-posto" style="margin:4px 0 0;width:100%;" onclick="openAddPosto()">+ Adicionar posto</button>
+      </div>
+    </div>
+    <div id="admin-tab-modulos" style="display:none;">
+      <div class="admin-section">
+        <div class="admin-section-title">Módulos e itens de checklist</div>
+        <div id="admin-modules-list"></div>
+      </div>
+    </div>
+    <div id="admin-tab-notificacoes" style="display:none;">
+      <div class="admin-section">
+        <div class="admin-section-title">Responsáveis — Não conformidades</div>
+        <div id="admin-notif-nc-list"></div>
+        <div class="admin-add-notif"><input type="text" id="new-notif-nc" placeholder="Nome..."><button class="btn-p" style="width:auto;padding:8px 14px;font-size:13px;" onclick="addNotif('nc')">+</button></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">Responsáveis — Intervenção de processo</div>
+        <div id="admin-notif-proc-list"></div>
+        <div class="admin-add-notif"><input type="text" id="new-notif-proc" placeholder="Nome..."><button class="btn-p" style="width:auto;padding:8px 14px;font-size:13px;" onclick="addNotif('proc')">+</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: NOK ══ -->
+<div class="modal-overlay" id="modal-nok">
+  <div class="modal-card" style="border:0.5px solid var(--red);">
+    <div class="modal-title" style="color:var(--red);">Não conformidade</div>
+    <div class="modal-sub" id="mn-sub">—</div>
+    <div class="modal-posto-tag" id="mn-posto-tag">POSTO —</div>
+    <div class="modal-summary" id="mn-summary"></div>
+    <div class="modal-section">
+      <div class="toggle-row" onclick="toggleModalBlock()">
+        <div class="tog" id="tog-block"><div class="tog-k"></div></div>
+        <div class="toggle-label">Bloquear lote / processo</div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Notificar</div>
+      <div class="chips" id="notif-chips-nc"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-mc" onclick="closeNokModal(false)">Cancelar</button>
+      <button class="btn-mr" onclick="closeNokModal(true)">Registar alerta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: PROCESSO ══ -->
+<div class="modal-overlay" id="modal-proc">
+  <div class="modal-card" style="border:0.5px solid var(--purple);">
+    <div class="modal-title" style="color:var(--purple);">Intervenção de processo</div>
+    <div class="modal-sub" id="mp-sub">—</div>
+    <div class="modal-posto-tag" id="mp-posto-tag">POSTO —</div>
+    <div class="modal-summary" id="mp-summary"></div>
+    <div class="modal-section">
+      <div class="modal-section-label">Enviar para</div>
+      <div class="chips" id="notif-chips-proc"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Urgência</div>
+      <div style="display:flex;gap:7px;">
+        <button class="chip chip-proc" id="urg-imediato" onclick="setUrg('imediato')">Imediato</button>
+        <button class="chip chip-proc" id="urg-turno" onclick="setUrg('turno')">Neste turno</button>
+        <button class="chip chip-proc" id="urg-planeado" onclick="setUrg('planeado')">Planeado</button>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-mc" onclick="closeProcModal(false)">Cancelar</button>
+      <button class="btn-mp" onclick="closeProcModal(true)">Abrir intervenção</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ADD POSTO ══ -->
+<div class="modal-overlay" id="modal-add-posto">
+  <div class="modal-card" style="border:0.5px solid var(--border2);">
+    <div class="modal-title">Novo posto</div>
+    <div class="modal-sub">Ficará disponível para todas as auditorias</div>
+    <input type="text" id="new-posto-input" placeholder="Ex: Prensa 5, CNC#6..." style="width:100%;padding:10px 13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:15px;margin:1rem 0 .9rem;">
+    <div class="modal-btns">
+      <button class="btn-mc" onclick="closeAddPosto(false)">Cancelar</button>
+      <button class="btn-p" style="flex:2;margin-top:0;" onclick="closeAddPosto(true)">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: VALIDADE EXPIRADA ══ -->
+<div class="modal-overlay" id="modal-validade-expired">
+  <div class="modal-card" style="border:0.5px solid var(--sev0);">
+    <div class="modal-title" style="color:var(--sev0);">🛑 Material fora de prazo</div>
+    <div class="modal-sub">Alerta criado automaticamente. Notificar responsável?</div>
+    <div class="modal-section" style="margin-top:.75rem;">
+      <div class="modal-section-label">Notificar</div>
+      <div class="chips" id="modal-validade-chips"></div>
+    </div>
+    <div class="modal-btns" style="margin-top:.75rem;">
+      <button class="btn-mc" onclick="closeValidadeModal()">Fechar</button>
+      <button class="btn-mr" onclick="confirmValidadeNotif()">Notificar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ALERTA MANUAL ══ -->
+<div class="modal-overlay" id="modal-manual-alert">
+  <div class="modal-card" style="border:0.5px solid var(--sev0);">
+    <div class="modal-title" style="color:var(--sev0);" id="manual-alert-title">Alerta crítico</div>
+    <div class="modal-sub" id="manual-alert-sub">Registar ocorrência grave não associada a checklist</div>
+    <div class="fl" style="margin-top:.75rem;"><div class="fl-label">Posto</div>
+      <select id="manual-alert-posto"></select></div>
+    <div class="fl"><div class="fl-label">Descrição</div>
+      <textarea id="manual-alert-desc" style="width:100%;padding:9px 12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;height:70px;" placeholder="Descrever o problema / reclamação..."></textarea></div>
+    <div class="fl"><div class="fl-label">Notificar</div>
+      <div class="chips" id="manual-alert-chips"></div></div>
+    <div class="modal-btns" style="margin-top:.75rem;">
+      <button class="btn-mc" onclick="closeManualAlert(false)">Cancelar</button>
+      <button id="manual-alert-confirm-btn" class="btn-mr" onclick="closeManualAlert(true)">Registar alerta</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ SEVERITY LEVELS ══
+const SEVS = [
+  { id:0, label:'Parar produção',  icon:'🛑', color:'var(--sev0)', cls:'sev-0' },
+  { id:1, label:'Inspeção 100%',   icon:'🔍', color:'var(--sev1)', cls:'sev-1' },
+  { id:2, label:'Retrabalho',      icon:'🔧', color:'var(--sev2)', cls:'sev-2' },
+  { id:3, label:'Pontuais',        icon:'⚠️', color:'var(--sev3)', cls:'sev-3' },
+  { id:4, label:'Observações',     icon:'📝', color:'var(--sev4)', cls:'sev-4' },
+];
+
+// ══ MODULES ══
+const MODULES = [
+  { id:'materia', icon:'⬛', name:'Matéria-prima', sub:'Registo + validade', formModule:true, items:[]},
+  { id:'processo', icon:'⚙️', name:'Processo / Máquina', sub:'8 pts', items:[
+    {t:'Temperatura da prensa dentro do setpoint',s:'Típico 140–160 °C (ficha processo)'},
+    {t:'Pressão de moldagem conforme especificado',s:'Tolerância ±5 bar do nominal'},
+    {t:'Tempo de ciclo dentro do intervalo aprovado',s:'±10% do tempo de ciclo padrão'},
+    {t:'Desmoldante aplicado conforme instrução',s:'Frequência e quantidade conforme IFT-05'},
+    {t:'Molde limpo e sem resíduos',s:'Inspeção visual antes de cada série'},
+    {t:'Sistema de arrefecimento funcional',s:'Caudal de água circulante confirmado'},
+    {t:'Parâmetros de setup registados na OF',s:'OF assinada pelo operador'},
+    {t:'Primeiro artigo aprovado antes de série',s:'PPAP ou FAI documentado'},
+  ]},
+  { id:'pecas', icon:'🔷', name:'Peças produzidas', sub:'9 pts', items:[
+    {t:'Ausência de vazios, bolhas e porosidade',s:'Visual 100% — nenhum vazio em zona funcional'},
+    {t:'Ausência de rebarbas fora de tolerância',s:'Rebarba ≤ 0,3 mm em zonas de vedação'},
+    {t:'Cotas críticas dentro de tolerância (amostragem)',s:'Mín. 5 peças/hora — registo DIM-02'},
+    {t:'Cor e tonalidade uniformes',s:'Comparar com amostra padrão aprovada'},
+    {t:'Ausência de empeno excessivo',s:'Planeza ≤ tolerância do desenho'},
+    {t:'Marcação de lote/data visível e legível',s:'Localização e formato conforme molde'},
+    {t:'Insertos metálicos corretamente posicionados',s:'Desvio ≤ 0,5 mm; torque mín. conforme tabela'},
+    {t:'Ausência de delaminação (teste de tap)',s:'Som oco = NOK; registar posição'},
+    {t:'Peças NOK segregadas e identificadas',s:'Caixa vermelha com etiqueta de rejeição'},
+  ]},
+  { id:'posto_trab', icon:'🏭', name:'Posto de trabalho', sub:'6 pts', items:[
+    {t:'Área limpa e organizada (5S)',s:'Sem resíduos, ferramentas no local correto'},
+    {t:'EPI disponível e em uso',s:'Luvas, óculos, proteção térmica obrigatórios'},
+    {t:'Instrução de trabalho afixada e atualizada',s:'Versão vigente conforme sistema documental'},
+    {t:'Sinalização de segurança visível',s:'Zonas de risco identificadas e desobstruídas'},
+    {t:'Extintores acessíveis e dentro da validade',s:'Inspeção semestral na etiqueta'},
+    {t:'Equipamentos de medição calibrados',s:'Etiqueta de calibração visível e válida'},
+  ]},
+  { id:'doc', icon:'📋', name:'Documentação', sub:'5 pts', items:[
+    {t:'Ordens de fabrico assinadas pelo operador',s:'Todas as OF em curso com assinatura'},
+    {t:'Registos de controlo de processo preenchidos',s:'Sem campos em branco nos impressos'},
+    {t:'NCs do turno anterior encerradas ou em curso',s:'Verificar estado no sistema NC'},
+    {t:'Rastreabilidade lote/produto garantida',s:'Etiquetas em todas as paletes'},
+    {t:'Plano de controlo atualizado no posto',s:'Versão aprovada pelo responsável QC'},
+  ]},
+];
+
+// ══ STATE ══
+let postos = ['P1000','P1001','Banca'];
+let adminCfg = {
+  notifNC: ['Chefe de turno','Responsável qualidade','Produção','Manutenção'],
+  notifProc: ['Técnico de processo','Eng. qualidade','Manutenção','Responsável produção'],
+  postoModules: {}
+};
+let state = { user:'', turno:'', currentPosto:null, currentModule:null, blockLote:false, urgencia:'turno', postoData:{} };
+let alertFeed = []; // global chronological feed of all alerts
+let clockInterval = null;
+
+function getPostoModules(pid){ if(!adminCfg.postoModules[pid]){adminCfg.postoModules[pid]={};MODULES.forEach(m=>adminCfg.postoModules[pid][m.id]=true);}return adminCfg.postoModules[pid];}
+function activeModulesForPosto(pid){const cfg=getPostoModules(pid);return MODULES.filter(m=>cfg[m.id]!==false);}
+
+function initPosto(pid){
+  if(!state.postoData[pid]){
+    state.postoData[pid]={};
+    MODULES.forEach(m=>{
+      state.postoData[pid][m.id]={
+        done:false,
+        items:m.formModule?[]:m.items.map(()=>({status:null,obs:'',sev:null,blockLote:false,needProc:false,procDesc:'',procWho:[]})),
+        noks:[],procs:[],
+        formData:m.formModule?{}:undefined
+      };
+    });
+  }
+}
+
+// ══ SCREENS ══
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goHome(){renderHome();showScreen('s-home');}
+function goPosto(){renderPosto();showScreen('s-posto');}
+
+// ══ LOGIN ══
+function doLogin(){
+  const u=document.getElementById('l-user').value;
+  if(!u){toast('Selecione um inspetor','r');return;}
+  state.user=u;state.turno=document.getElementById('l-turno').value;
+  alertFeed=[];
+  postos.forEach(p=>initPosto(p));
+  renderHome();showScreen('s-home');
+  startClock();
+}
+
+function startClock(){
+  if(clockInterval)clearInterval(clockInterval);
+  clockInterval=setInterval(()=>{
+    const el=document.getElementById('mon-clock');
+    if(el)el.textContent=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  },1000);
+}
+
+// ══ SEVERITY HELPERS ══
+function sevColor(id){return `var(--sev${id})`;}
+function sevCls(id){return `sev-${id}`;}
+function sevLabel(id){return SEVS[id]?.label||'—';}
+function sevIcon(id){return SEVS[id]?.icon||'';}
+
+function allNoksForPosto(pid){
+  const noks=[];
+  activeModulesForPosto(pid).forEach(m=>{
+    const ms=state.postoData[pid]?.[m.id];
+    if(!ms)return;
+    ms.noks.forEach(n=>noks.push({...n,mod:m.name}));
+  });
+  return noks;
+}
+function globalSevCount(sevId){
+  let c=0;
+  postos.forEach(pid=>allNoksForPosto(pid).forEach(n=>{if(n.sev===sevId)c++;}));
+  return c;
+}
+function worstSevForPosto(pid){
+  const noks=allNoksForPosto(pid);
+  if(!noks.length)return null;
+  return Math.min(...noks.map(n=>n.sev??4));
+}
+
+// ══ HOME ══
+function renderHome(){
+  document.getElementById('h-user').textContent=state.user.split(' ')[0]+' · Turno '+state.turno;
+  const now=new Date();
+  document.getElementById('h-date').innerHTML=now.toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit'})+'<br>'+now.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+
+  let totalMods=0,doneMods=0;
+  postos.forEach(p=>{const am=activeModulesForPosto(p);totalMods+=am.length;am.forEach(m=>{if(state.postoData[p]?.[m.id]?.done)doneMods++;});});
+  const pct=totalMods?Math.round(doneMods/totalMods*100):0;
+  document.getElementById('h-pbar').style.width=pct+'%';
+  document.getElementById('h-done').textContent=doneMods+' de '+totalMods+' módulos concluídos';
+  document.getElementById('h-pct').textContent=pct+'%';
+
+  // severity summary bar
+  const bar=document.getElementById('home-sev-bar');
+  const hasSevs=SEVS.some(s=>globalSevCount(s.id)>0);
+  bar.innerHTML='';
+  if(hasSevs){
+    SEVS.forEach(s=>{
+      const c=globalSevCount(s.id);
+      if(c===0)return;
+      const pill=document.createElement('div');
+      pill.className='sev-bar-pill '+s.cls;
+      pill.innerHTML=`<span>${s.icon}</span><span class="sev-bar-count">${c}</span><span>${s.label}</span>`;
+      pill.onclick=()=>{showMonitor();};
+      bar.appendChild(pill);
+    });
+  }
+
+  // monitor button pulse if sev-0 exists
+  const btnMon=document.getElementById('btn-monitor');
+  btnMon.classList.toggle('highlight',globalSevCount(0)>0);
+
+  // posto list
+  const list=document.getElementById('posto-list');
+  list.innerHTML='';
+  postos.forEach(pid=>{
+    const pd=state.postoData[pid]||{};
+    const activeMods=activeModulesForPosto(pid);
+    let okM=0,nokM=0,totalM=activeMods.length;
+    activeMods.forEach(m=>{const ms=pd[m.id];if(!ms)return;if(ms.done){if(ms.noks.length>0||ms.procs.length>0)nokM++;else okM++;}});
+    const doneM=okM+nokM;
+    let badgeCls='',badgeText='pendente';
+    if(doneM===totalM&&nokM===0){badgeCls='ok';badgeText='conforme';}
+    else if(doneM===totalM&&nokM>0){badgeCls='nok';badgeText=nokM+' alerta(s)';}
+    else if(doneM>0){badgeCls='partial';badgeText=doneM+'/'+totalM;}
+    const worst=worstSevForPosto(pid);
+    const dots=worst!==null?`<div class="posto-sev-dots">${allNoksForPosto(pid).map(n=>`<div class="posto-sev-dot" style="background:${sevColor(n.sev??4)}" title="${sevLabel(n.sev??4)}"></div>`).slice(0,5).join('')}</div>`:'';
+    const row=document.createElement('div');
+    row.className='posto-row';
+    row.innerHTML=`<div class="posto-name">${pid}</div>${dots}<span class="ps-badge ${badgeCls}">${badgeText}</span><button class="btn-posto" onclick="openPosto('${pid}')">Auditar</button>`;
+    list.appendChild(row);
+  });
+
+  const allDone=postos.every(p=>activeModulesForPosto(p).every(m=>state.postoData[p]?.[m.id]?.done));
+  document.getElementById('btn-finish').style.display=allDone?'block':'none';
+}
+
+// ══ POSTO ══
+function openPosto(pid){state.currentPosto=pid;initPosto(pid);renderPosto();showScreen('s-posto');}
+function renderPosto(){
+  const pid=state.currentPosto;
+  document.getElementById('posto-title').textContent=pid;
+  const pd=state.postoData[pid];
+  const activeMods=activeModulesForPosto(pid);
+  let done=0;activeMods.forEach(m=>{if(pd[m.id]?.done)done++;});
+  document.getElementById('posto-prog-top').textContent=done+'/'+activeMods.length;
+
+  // severity summary for this posto
+  const ss=document.getElementById('posto-sev-summary');
+  const noks=allNoksForPosto(pid);
+  ss.innerHTML='';
+  SEVS.forEach(s=>{
+    const c=noks.filter(n=>n.sev===s.id).length;
+    if(c===0)return;
+    const p=document.createElement('span');
+    p.className='sev-pill '+s.cls;
+    p.innerHTML=`<span class="sev-dot"></span>${s.icon} ${c} ${s.label}`;
+    ss.appendChild(p);
+  });
+
+  const grid=document.getElementById('modules-grid');
+  grid.innerHTML='';
+  activeMods.forEach(m=>{
+    const ms=pd[m.id];
+    const hasNok=ms.noks.length>0||ms.procs.length>0;
+    const worstMod=ms.noks.length?Math.min(...ms.noks.map(n=>n.sev??4)):null;
+    let cardCls='mod-card'+(ms.done&&!hasNok?' done':'');
+    if(worstMod!==null)cardCls+=` sev-${worstMod}-card`;
+    const modSevDots=ms.noks.map(n=>`<span class="sev-pill ${sevCls(n.sev??4)}" style="padding:2px 6px;font-size:9px;"><span class="sev-dot"></span>${SEVS[n.sev??4]?.icon}</span>`).join('');
+    const card=document.createElement('div');
+    card.className=cardCls;
+    card.innerHTML=`<div class="mod-card-badge">${ms.done?(hasNok?'':'✓'):''}</div><div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-sub">${m.sub}</div>${modSevDots?`<div class="mod-sev-row">${modSevDots}</div>`:''}`;
+    card.onclick=()=>openModule(m.id);
+    grid.appendChild(card);
+  });
+}
+
+// ══ CHECKLIST ══
+function openModule(mid){
+  state.currentModule=mid;
+  if(mid==='materia'){openMateria();return;}
+  renderChecklist();showScreen('s-checklist');
+}
+function renderChecklist(){
+  const pid=state.currentPosto,mid=state.currentModule;
+  const m=MODULES.find(x=>x.id===mid);
+  const ms=state.postoData[pid][mid];
+  document.getElementById('ck-title').textContent=pid+' · '+m.name;
+  const done=ms.items.filter(i=>i.status!==null).length;
+  document.getElementById('ck-prog').textContent=done+'/'+m.items.length;
+  const cont=document.getElementById('ck-items');
+  cont.innerHTML='';
+  m.items.forEach((item,i)=>{
+    const s=ms.items[i];
+    const isNok=s.status==='nok';
+    const sevClass=isNok?`nok-${s.sev??4}`:'';
+    const div=document.createElement('div');
+    div.className='ck-item'+(s.status==='ok'?' ok':isNok?' '+sevClass:'');
+    div.id='ci-'+i;
+    // severity picker HTML
+    const sevPickerHtml=SEVS.map(sv=>`<button class="sev-pick-btn ${s.sev===sv.id?sv.cls+' '+sv.cls:''}" onclick="setSev(${i},${sv.id})" style="${s.sev===sv.id?'border-color:'+sv.color+';color:'+sv.color+';':''}">${sv.icon} ${sv.label}</button>`).join('');
+    div.innerHTML=`
+      <div class="ci-text">${item.t}</div>
+      <div class="ci-spec">${item.s}</div>
+      <div class="ci-btns">
+        <button class="btn-ok-ck${s.status==='ok'?' on':''}" onclick="setItem(${i},'ok')">✓ OK</button>
+        <button class="btn-nok-ck${s.status==='nok'?' on':''}" onclick="setItem(${i},'nok')">✕ NOK</button>
+      </div>
+      <div class="nok-extra">
+        <div class="modal-section-label" style="margin-bottom:5px;">Gravidade</div>
+        <div class="sev-picker">${sevPickerHtml}</div>
+        <textarea class="nok-obs" placeholder="Descrição da não conformidade..." onchange="setObs(${i},this.value)">${s.obs}</textarea>
+        <div class="nok-tags">
+          <button class="tag-btn${s.blockLote?' on-block':''}" onclick="toggleTag(${i},'blockLote',this)">🔒 Bloquear lote</button>
+          <button class="tag-btn${s.needProc?' on-proc':''}" onclick="toggleTag(${i},'needProc',this)">🔧 Intervenção processo</button>
+        </div>
+        ${s.needProc?`<div class="proc-form"><div class="proc-form-title">INTERVENÇÃO NECESSÁRIA</div><textarea placeholder="Descrever problema e correção necessária..." onchange="setProcDesc(${i},this.value)">${s.procDesc}</textarea><div class="proc-who"><button class="proc-who-btn${s.procWho?.includes('Técnico')?' on':''}" onclick="toggleProcWho(${i},'Técnico',this)">Técnico</button><button class="proc-who-btn${s.procWho?.includes('Eng. qualidade')?' on':''}" onclick="toggleProcWho(${i},'Eng. qualidade',this)">Eng. qualidade</button><button class="proc-who-btn${s.procWho?.includes('Manutenção')?' on':''}" onclick="toggleProcWho(${i},'Manutenção',this)">Manutenção</button></div></div>`:''}
+      </div>`;
+    cont.appendChild(div);
+  });
+  updateSaveBtn();
+}
+
+function setItem(i,status){
+  const ms=state.postoData[state.currentPosto][state.currentModule];
+  ms.items[i].status=ms.items[i].status===status?null:status;
+  if(status==='ok')ms.items[i].sev=null;
+  if(status==='nok'&&ms.items[i].sev===null)ms.items[i].sev=4; // default to Observações
+  renderChecklist();
+}
+function setSev(i,sevId){
+  state.postoData[state.currentPosto][state.currentModule].items[i].sev=sevId;
+  renderChecklist();
+}
+function setObs(i,v){state.postoData[state.currentPosto][state.currentModule].items[i].obs=v;}
+function setProcDesc(i,v){state.postoData[state.currentPosto][state.currentModule].items[i].procDesc=v;}
+function toggleTag(i,flag,btn){
+  const s=state.postoData[state.currentPosto][state.currentModule].items[i];
+  s[flag]=!s[flag];renderChecklist();
+}
+function toggleProcWho(i,who,btn){
+  const s=state.postoData[state.currentPosto][state.currentModule].items[i];
+  if(!s.procWho)s.procWho=[];
+  const idx=s.procWho.indexOf(who);
+  if(idx>=0)s.procWho.splice(idx,1);else s.procWho.push(who);
+  btn.classList.toggle('on');
+}
+function updateSaveBtn(){
+  const ms=state.postoData[state.currentPosto][state.currentModule];
+  // all items answered, and all noks have a severity
+  const allOk=ms.items.every(i=>i.status!==null&&(i.status!=='nok'||i.sev!==null));
+  document.getElementById('btn-save').disabled=!allOk;
+}
+
+// ══ MATÉRIA-PRIMA FORM ══
+function openMateria(){
+  const pid=state.currentPosto;
+  const ms=state.postoData[pid]['materia'];
+  const d=ms.formData||{};
+  document.getElementById('mat-title').textContent=pid+' · Matéria-prima';
+  document.getElementById('mat-status').textContent=ms.done?'✓ Registado':'Por preencher';
+  document.getElementById('mat-ref').value=d.ref||'';
+  document.getElementById('mat-lote').value=d.lote||'';
+  document.getElementById('mat-bobine').value=d.bobine||'';
+  document.getElementById('mat-fabrico').value=d.fabrico||'';
+  document.getElementById('mat-validade').value=d.validade||'';
+  document.getElementById('mat-obs').value=d.obs||'';
+  document.getElementById('mat-aprovado').value=d.aprovado||state.user||'';
+  document.getElementById('mat-validade-result').style.display='none';
+  // photo
+  if(d.photo){
+    document.getElementById('mat-photo-img').src=d.photo;
+    document.getElementById('mat-photo-preview').style.display='block';
+    document.getElementById('mat-photo-btn').style.display='none';
+  } else {
+    document.getElementById('mat-photo-preview').style.display='none';
+    document.getElementById('mat-photo-btn').style.display='flex';
+  }
+  matFieldChanged();
+  showScreen('s-materia');
+}
+
+function matFieldChanged(){
+  const ref=document.getElementById('mat-ref').value.trim();
+  const lote=document.getElementById('mat-lote').value.trim();
+  const validade=document.getElementById('mat-validade').value;
+  const aprovado=document.getElementById('mat-aprovado').value.trim();
+  document.getElementById('btn-save-mat').disabled=!(ref&&lote&&validade&&aprovado);
+}
+
+function checkValidade(){
+  const val=document.getElementById('mat-validade').value;
+  const res=document.getElementById('mat-validade-result');
+  if(!val){
+    res.style.display='block';
+    res.style.background='var(--amber-d)';res.style.border='0.5px solid var(--amber)';res.style.color='var(--amber)';
+    res.textContent='⚠ Introduza a data de validade primeiro.';
+    return;
+  }
+  const today=new Date(); today.setHours(0,0,0,0);
+  const exp=new Date(val); exp.setHours(0,0,0,0);
+  const diffDays=Math.round((exp-today)/(1000*60*60*24));
+  res.style.display='block';
+
+  if(diffDays<0){
+    // FORA DE PRAZO — criar alerta
+    res.style.background='var(--sev0-d)';res.style.border='0.5px solid var(--sev0)';res.style.color='var(--sev0)';
+    res.innerHTML=`🛑 Fora de prazo há ${Math.abs(diffDays)} dia(s). A criar alerta...`;
+    const pid=state.currentPosto;
+    const ref=document.getElementById('mat-ref').value||'—';
+    const lote=document.getElementById('mat-lote').value||'—';
+    const time=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+    alertFeed.unshift({
+      posto:pid, mod:'Matéria-prima', manual:true, type:'critical', sev:0,
+      text:`VALIDADE EXPIRADA — ${ref} / Lote ${lote} (expirou há ${Math.abs(diffDays)} dia(s))`,
+      time
+    });
+    // show notif modal
+    setTimeout(()=>{
+      document.getElementById('modal-validade-chips').innerHTML=adminCfg.notifNC.map(n=>`<button class="chip" onclick="this.classList.toggle('on')">${n}</button>`).join('');
+      document.getElementById('modal-validade-expired').classList.add('on');
+    },600);
+  } else if(diffDays<=30){
+    res.style.background='var(--amber-d)';res.style.border='0.5px solid var(--amber)';res.style.color='var(--amber)';
+    res.textContent=`⚠ Válido — expira em ${diffDays} dia(s). Atenção ao prazo.`;
+  } else {
+    res.style.background='var(--green-d)';res.style.border='0.5px solid var(--green)';res.style.color='var(--green)';
+    res.textContent=`✓ Dentro do prazo — ${diffDays} dias restantes.`;
+  }
+}
+
+function handlePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const pid=state.currentPosto;
+    if(!state.postoData[pid]['materia'].formData)state.postoData[pid]['materia'].formData={};
+    state.postoData[pid]['materia'].formData.photo=e.target.result;
+    document.getElementById('mat-photo-img').src=e.target.result;
+    document.getElementById('mat-photo-preview').style.display='block';
+    document.getElementById('mat-photo-btn').style.display='none';
+    toast('Foto guardada','g');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto(){
+  const pid=state.currentPosto;
+  if(state.postoData[pid]['materia'].formData)delete state.postoData[pid]['materia'].formData.photo;
+  document.getElementById('mat-photo-img').src='';
+  document.getElementById('mat-photo-preview').style.display='none';
+  document.getElementById('mat-photo-btn').style.display='flex';
+  document.getElementById('mat-photo-input').value='';
+}
+
+function saveMateria(){
+  const pid=state.currentPosto;
+  const ms=state.postoData[pid]['materia'];
+  const photo=ms.formData?.photo||null;
+  ms.formData={
+    ref:document.getElementById('mat-ref').value.trim(),
+    lote:document.getElementById('mat-lote').value.trim(),
+    bobine:document.getElementById('mat-bobine').value.trim(),
+    fabrico:document.getElementById('mat-fabrico').value,
+    validade:document.getElementById('mat-validade').value,
+    obs:document.getElementById('mat-obs').value.trim(),
+    aprovado:document.getElementById('mat-aprovado').value.trim(),
+    photo,
+    savedAt:new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})
+  };
+  ms.done=true;
+  ms.noks=[];ms.procs=[];
+  // check if expired and flag as nok
+  const today=new Date();today.setHours(0,0,0,0);
+  const exp=new Date(ms.formData.validade);exp.setHours(0,0,0,0);
+  if(exp<today){
+    ms.noks=[{text:'Validade expirada — '+ms.formData.ref,sev:0,obs:'Lote: '+ms.formData.lote,time:ms.formData.savedAt}];
+  }
+  document.getElementById('mat-status').textContent='✓ Registado';
+  toast('Matéria-prima registada','g');
+  renderPosto();showScreen('s-posto');
+}
+
+function saveChecklist(){
+  const pid=state.currentPosto,mid=state.currentModule;
+  const m=MODULES.find(x=>x.id===mid);
+  const ms=state.postoData[pid][mid];
+  ms.noks=ms.items.map((s,i)=>s.status==='nok'?{text:m.items[i].t,obs:s.obs,sev:s.sev??4,blockLote:s.blockLote,time:new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}:null).filter(Boolean);
+  ms.procs=ms.items.map((s,i)=>s.needProc?{text:m.items[i].t,desc:s.procDesc,who:s.procWho||[]}:null).filter(Boolean);
+  ms.done=true;
+  // add to alert feed
+  ms.noks.forEach(n=>alertFeed.unshift({posto:pid,mod:m.name,text:n.text,sev:n.sev,obs:n.obs,time:n.time}));
+  const hasNok=ms.noks.length>0;
+  const hasProc=ms.procs.length>0;
+  if(hasNok)showNokModal();
+  else if(hasProc)showProcModal();
+  else{renderPosto();showScreen('s-posto');toast('Módulo OK — sem anomalias','g');}
+}
+
+// ══ NOK MODAL ══
+function showNokModal(){
+  const pid=state.currentPosto,mid=state.currentModule;
+  const ms=state.postoData[pid][mid];
+  document.getElementById('mn-sub').textContent=ms.noks.length+' item(s) NOK — '+pid;
+  document.getElementById('mn-posto-tag').textContent='POSTO: '+pid;
+  document.getElementById('mn-summary').innerHTML=ms.noks.map(n=>`<span class="sev-pill ${sevCls(n.sev)}" style="margin-bottom:3px;display:inline-flex;">${sevIcon(n.sev)} ${sevLabel(n.sev)}</span> <b>${n.text}</b>${n.obs?'<br><span style="color:var(--text2)">'+n.obs+'</span>':''}`).join('<br>');
+  state.blockLote=ms.noks.some(n=>n.blockLote);
+  document.getElementById('tog-block').className='tog'+(state.blockLote?' on':'');
+  document.getElementById('notif-chips-nc').innerHTML=adminCfg.notifNC.map(n=>`<button class="chip" onclick="this.classList.toggle('on')">${n}</button>`).join('');
+  document.getElementById('modal-nok').classList.add('on');
+}
+function toggleModalBlock(){state.blockLote=!state.blockLote;document.getElementById('tog-block').className='tog'+(state.blockLote?' on':'');}
+function closeNokModal(confirm){
+  document.getElementById('modal-nok').classList.remove('on');
+  if(confirm){
+    const notified=[...document.querySelectorAll('#notif-chips-nc .chip.on')].map(b=>b.textContent);
+    const pid=state.currentPosto;
+    let msg=`[${pid}] NC registada.`;
+    if(state.blockLote)msg+=' Lote bloqueado.';
+    if(notified.length)msg+=' Notif: '+notified.join(', ')+'.';
+    toast(msg,'r');
+  }
+  const ms=state.postoData[state.currentPosto][state.currentModule];
+  if(ms.procs.length>0)showProcModal();
+  else{renderPosto();showScreen('s-posto');}
+}
+
+// ══ PROC MODAL ══
+function showProcModal(){
+  const pid=state.currentPosto,mid=state.currentModule;
+  const ms=state.postoData[pid][mid];
+  document.getElementById('mp-sub').textContent=ms.procs.length+' intervenção(ões) — '+pid;
+  document.getElementById('mp-posto-tag').textContent='POSTO: '+pid;
+  document.getElementById('mp-summary').innerHTML=ms.procs.map(p=>`<b>${p.text}</b>${p.desc?'<br>'+p.desc:''}`).join('<br><br>');
+  document.getElementById('notif-chips-proc').innerHTML=adminCfg.notifProc.map(n=>`<button class="chip chip-proc" onclick="this.classList.toggle('on')">${n}</button>`).join('');
+  state.urgencia='turno';setUrg('turno');
+  document.getElementById('modal-proc').classList.add('on');
+}
+function setUrg(v){state.urgencia=v;['imediato','turno','planeado'].forEach(u=>document.getElementById('urg-'+u).classList.toggle('on',u===v));}
+function closeProcModal(confirm){
+  document.getElementById('modal-proc').classList.remove('on');
+  if(confirm){
+    const pid=state.currentPosto;
+    const notified=[...document.querySelectorAll('#notif-chips-proc .chip.on')].map(b=>b.textContent);
+    let msg=`[${pid}] Intervenção aberta (${state.urgencia}).`;
+    if(notified.length)msg+=' Para: '+notified.join(', ')+'.';
+    toast(msg,'p');
+  }
+  renderPosto();showScreen('s-posto');
+}
+
+// ══ MONITOR ══
+function showMonitor(){renderMonitor();showScreen('s-monitor');}
+function renderMonitor(){
+  let totalOk=0,totalNok=0,totalProc=0,totalItems=0;
+  postos.forEach(pid=>{activeModulesForPosto(pid).forEach(m=>{const ms=state.postoData[pid]?.[m.id];if(!ms)return;ms.items.forEach(s=>{if(s.status)totalItems++;if(s.status==='ok')totalOk++;if(s.status==='nok')totalNok++;});totalProc+=ms.procs.length;});});
+  const rate=totalItems?Math.round(totalOk/totalItems*100):100;
+
+  let html=`<div class="mon-kpi-row">
+    <div class="mon-kpi"><div class="mon-kpi-val g">${totalOk}</div><div class="mon-kpi-lbl">OK</div></div>
+    <div class="mon-kpi"><div class="mon-kpi-val r">${totalNok}</div><div class="mon-kpi-lbl">NOK</div></div>
+    <div class="mon-kpi"><div class="mon-kpi-val ${rate>=90?'g':'r'}">${rate}%</div><div class="mon-kpi-lbl">conformidade</div></div>
+    <div class="mon-kpi"><div class="mon-kpi-val" style="color:var(--purple);">${totalProc}</div><div class="mon-kpi-lbl">interv.</div></div>
+  </div>`;
+
+  // ── POSTOS (main section) ──
+  html+=`<div class="mon-section-title">Estado por posto</div>`;
+  postos.forEach(pid=>{
+    const pd=state.postoData[pid]||{};
+    const activeMods=activeModulesForPosto(pid);
+    let pOk=0,pNok=0,pItems=0;
+    activeMods.forEach(m=>{const ms=pd[m.id];if(!ms)return;ms.items.forEach(s=>{if(s.status)pItems++;if(s.status==='ok')pOk++;if(s.status==='nok')pNok++;});});
+    const pRate=pItems?Math.round(pOk/pItems*100):null;
+    const noks=allNoksForPosto(pid);
+    const worst=noks.length?Math.min(...noks.map(n=>n.sev??4)):null;
+    const rateCol=pRate===null?'var(--text3)':pRate>=90?'var(--green)':pRate>=70?'var(--amber)':'var(--red)';
+    const doneMods=activeMods.filter(m=>pd[m.id]?.done).length;
+    const progPct=activeMods.length?Math.round(doneMods/activeMods.length*100):0;
+
+    html+=`<div style="background:var(--bg2);border:0.5px solid ${worst!==null?`var(--sev${worst})`:'var(--border)'};border-radius:var(--r);margin-bottom:8px;overflow:hidden;">
+      <!-- posto header -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:14px;font-weight:700;flex:1;">${pid}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);">${doneMods}/${activeMods.length} módulos</div>
+        <div style="font-size:18px;font-weight:700;color:${rateCol};min-width:40px;text-align:right;">${pRate!==null?pRate+'%':'—'}</div>
+      </div>
+      <!-- progress strip -->
+      <div style="height:3px;background:var(--bg3);"><div style="height:100%;width:${progPct}%;background:${worst!==null?`var(--sev${worst})`:'var(--green)'};transition:width .4s;"></div></div>`;
+
+    if(noks.length===0 && !activeMods.some(m=>pd[m.id]?.procs?.length>0)){
+      if(doneMods===activeMods.length){
+        html+=`<div style="padding:9px 13px;font-family:'DM Mono',monospace;font-size:11px;color:var(--green);">✓ Sem anomalias</div>`;
+      } else {
+        html+=`<div style="padding:9px 13px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">Auditoria em curso...</div>`;
+      }
+    } else {
+      // group noks by severity, sorted worst first
+      const sortedNoks=[...noks].sort((a,b)=>(a.sev??4)-(b.sev??4));
+      html+=`<div style="padding:8px 13px;display:flex;flex-direction:column;gap:5px;">`;
+      sortedNoks.forEach(n=>{
+        html+=`<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);">
+          <span class="sev-pill ${sevCls(n.sev??4)}" style="flex-shrink:0;font-size:9px;">${sevIcon(n.sev??4)} ${sevLabel(n.sev??4)}</span>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:500;line-height:1.35;">${n.text}</div>
+            ${n.obs?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-top:2px;">${n.obs}</div>`:''}
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px;">${n.mod}${n.time?' · '+n.time:''}</div>
+          </div>
+        </div>`;
+      });
+      // proc interventions
+      activeMods.forEach(m=>{
+        const ms=pd[m.id];if(!ms)return;
+        ms.procs.forEach(p=>{
+          html+=`<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);">
+            <span class="sev-pill" style="flex-shrink:0;font-size:9px;background:var(--purple-d);border-color:var(--purple);color:var(--purple);">🔧 Processo</span>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">${p.text}</div>
+            ${p.desc?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);">${p.desc}</div>`:''}
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--purple);">→ ${p.who.join(', ')||'—'}</div></div>
+          </div>`;
+        });
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+
+  // ── MANUAL ALERTS (critical + client complaints) ──
+  const manualAlerts=alertFeed.filter(a=>a.manual);
+  if(manualAlerts.length>0){
+    html+=`<div class="mon-section-title" style="margin-top:.5rem;">Alertas e reclamações (${manualAlerts.length})</div><div class="alert-feed">`;
+    manualAlerts.forEach(a=>{
+      const col=a.type==='client'?'var(--amber)':'var(--sev0)';
+      const label=a.type==='client'?'📣 Reclamação cliente':'🛑 Crítico';
+      html+=`<div class="alert-card ac-${a.type==='client'?'2':'0'}" style="border-color:${col};">
+        <div class="alert-top">
+          <span class="sev-pill" style="font-size:9px;padding:2px 7px;background:${a.type==='client'?'var(--amber-d)':'var(--sev0-d)'};border-color:${col};color:${col};">${label}</span>
+          <span class="alert-posto-tag">${a.posto}</span>
+          <span class="alert-time">${a.time}</span>
+        </div>
+        <div class="alert-text">${a.text}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // ── NOK FEED (auto, non-manual, only sev 0+1) ──
+  const critFeed=alertFeed.filter(a=>!a.manual&&(a.sev===0||a.sev===1));
+  if(critFeed.length>0){
+    html+=`<div class="mon-section-title" style="margin-top:.25rem;">Ocorrências críticas do turno (${critFeed.length})</div><div class="alert-feed">`;
+    critFeed.forEach(a=>{
+      html+=`<div class="alert-card ac-${a.sev}">
+        <div class="alert-top">
+          <span class="sev-pill ${sevCls(a.sev)}" style="font-size:9px;padding:2px 7px;"><span class="sev-dot"></span>${sevIcon(a.sev)} ${sevLabel(a.sev)}</span>
+          <span class="alert-posto-tag">${a.posto}</span>
+          <span class="alert-time">${a.time}</span>
+        </div>
+        <div class="alert-text">${a.mod}: ${a.text}</div>
+        ${a.obs?`<div class="alert-obs">${a.obs}</div>`:''}
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  if(!manualAlerts.length&&!critFeed.length){
+    html+=`<div style="text-align:center;padding:1.5rem;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">Sem alertas críticos registados</div>`;
+  }
+
+  document.getElementById('monitor-body').innerHTML=html;
+}
+
+// ══ PROJECTION MODE ══
+function showProjection(){
+  const now=new Date();
+  let totalOk=0,totalNok=0,totalProc=0,totalItems=0;
+  postos.forEach(pid=>{activeModulesForPosto(pid).forEach(m=>{const ms=state.postoData[pid]?.[m.id];if(!ms)return;ms.items.forEach(s=>{if(s.status)totalItems++;if(s.status==='ok')totalOk++;if(s.status==='nok')totalNok++;});totalProc+=ms.procs.length;});});
+  const rate=totalItems?Math.round(totalOk/totalItems*100):100;
+
+  let html=`
+    <div class="proj-header">
+      <div class="proj-title">Monitorização <span>do Turno</span></div>
+      <div class="proj-clock">${state.turno} · ${now.toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'2-digit'})} · ${now.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    <div class="proj-kpis">
+      <div class="proj-kpi"><div class="proj-kpi-val g">${totalOk}</div><div class="proj-kpi-lbl">itens OK</div></div>
+      <div class="proj-kpi"><div class="proj-kpi-val r">${totalNok}</div><div class="proj-kpi-lbl">NOK</div></div>
+      <div class="proj-kpi"><div class="proj-kpi-val ${rate>=90?'g':'r'}">${rate}%</div><div class="proj-kpi-lbl">conformidade</div></div>
+      <div class="proj-kpi"><div class="proj-kpi-val" style="color:var(--purple)">${totalProc}</div><div class="proj-kpi-lbl">intervenções</div></div>
+    </div>
+    <div class="proj-main">
+      <div class="proj-left">
+        <div class="proj-panel" style="overflow-y:auto;">
+          <div class="proj-panel-title">Estado por posto</div>`;
+
+  postos.forEach(pid=>{
+    const pd=state.postoData[pid]||{};
+    const activeMods=activeModulesForPosto(pid);
+    let pOk=0,pItems=0;
+    activeMods.forEach(m=>{const ms=pd[m.id];if(!ms)return;ms.items.forEach(s=>{if(s.status)pItems++;if(s.status==='ok')pOk++;});});
+    const pRate=pItems?Math.round(pOk/pItems*100):null;
+    const noks=allNoksForPosto(pid);
+    const worst=noks.length?Math.min(...noks.map(n=>n.sev??4)):null;
+    const col=worst!==null?`var(--sev${worst})`:'var(--green)';
+    const rateCol=pRate===null?'var(--text3)':pRate>=90?'var(--green)':pRate>=70?'var(--amber)':'var(--red)';
+    const doneMods=activeMods.filter(m=>pd[m.id]?.done).length;
+    const progPct=activeMods.length?Math.round(doneMods/activeMods.length*100):0;
+
+    html+=`<div class="proj-posto-row" style="flex-direction:column;align-items:stretch;gap:4px;padding:8px 0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="proj-posto-name" style="color:${worst!==null?col:'var(--text)'};">${pid}</div>
+        <div class="proj-posto-pct-wrap">
+          <div class="proj-posto-strip"><div class="proj-posto-strip-fill" style="width:${progPct}%;background:${col};"></div></div>
+          <div class="proj-posto-pct" style="color:var(--text2);">${doneMods}/${activeMods.length}</div>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:${rateCol};min-width:42px;text-align:right;">${pRate!==null?pRate+'%':'—'}</div>
+      </div>`;
+    if(noks.length>0){
+      const topNoks=[...noks].sort((a,b)=>(a.sev??4)-(b.sev??4)).slice(0,3);
+      topNoks.forEach(n=>{
+        html+=`<div style="display:flex;align-items:center;gap:6px;padding-left:4px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--sev${n.sev??4});flex-shrink:0;"></div>
+          <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sevLabel(n.sev??4)}: ${n.text}</div>
+        </div>`;
+      });
+      if(noks.length>3)html+=`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);padding-left:12px;">+${noks.length-3} mais...</div>`;
+    }
+    html+=`</div>`;
+  });
+
+  // manual alerts in projection
+  const manualAlerts=alertFeed.filter(a=>a.manual);
+  html+=`</div></div><div class="proj-right"><div class="proj-panel" style="overflow-y:auto;">
+    <div class="proj-panel-title">Alertas e reclamações</div>`;
+  if(manualAlerts.length===0&&alertFeed.filter(a=>!a.manual&&(a.sev===0||a.sev===1)).length===0){
+    html+=`<div style="font-size:13px;color:var(--text3);">Sem alertas</div>`;
+  }
+  manualAlerts.forEach(a=>{
+    const col=a.type==='client'?'var(--amber)':'var(--sev0)';
+    const lbl=a.type==='client'?'📣 Cliente':'🛑 Crítico';
+    html+=`<div class="proj-alert-item">
+      <div class="proj-alert-dot" style="background:${col}"></div>
+      <div><div class="proj-alert-text"><b style="color:${col}">${lbl}</b> — ${a.posto}</div>
+      <div class="proj-alert-sub">${a.text} · ${a.time}</div></div>
+    </div>`;
+  });
+  alertFeed.filter(a=>!a.manual&&(a.sev===0||a.sev===1)).slice(0,8).forEach(a=>{
+    html+=`<div class="proj-alert-item">
+      <div class="proj-alert-dot" style="background:${sevColor(a.sev)}"></div>
+      <div><div class="proj-alert-text"><b style="color:${sevColor(a.sev)}">${sevLabel(a.sev)}</b> — ${a.posto}</div>
+      <div class="proj-alert-sub">${a.mod}: ${a.text} · ${a.time}</div></div>
+    </div>`;
+  });
+  html+=`</div></div></div>`;
+
+  document.getElementById('proj-body').innerHTML=html;
+  showScreen('s-projection');
+}
+
+// ══ SUPABASE ══
+const SB_URL = 'https://qmxagahvvqxglhjbrupo.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGFnYWh2dnF4Z2xoamJydXBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTU0MTEsImV4cCI6MjA5Mjg5MTQxMX0.zUh5iJYBoUc1Ln4Z2CSP6nMoyNo8LCUuHUBMZVmRjsk';
+
+async function saveToSupabase(){
+  try {
+    const now = new Date();
+    let totalOk=0, totalNok=0, totalProc=0;
+    const sevCounts = {0:0,1:0,2:0,3:0,4:0};
+
+    const postosData = postos.map(pid=>{
+      const pd = state.postoData[pid]||{};
+      const activeMods = activeModulesForPosto(pid);
+      let pOk=0, pNok=0;
+      const pNoks=[], pProcs=[];
+      activeMods.forEach(m=>{
+        const ms=pd[m.id]; if(!ms) return;
+        ms.items.forEach(s=>{ if(s.status==='ok')pOk++; if(s.status==='nok')pNok++; });
+        ms.noks.forEach(n=>{ pNoks.push({text:n.text,sev:n.sev,obs:n.obs,mod:m.name,time:n.time}); sevCounts[n.sev??4]++; });
+        ms.procs.forEach(p=>pProcs.push({text:p.text,desc:p.desc,mod:m.name}));
+      });
+      totalOk+=pOk; totalNok+=pNok; totalProc+=pProcs.length;
+      const conf = (pOk+pNok)>0 ? Math.round(pOk/(pOk+pNok)*100) : null;
+      return { posto:pid, total_ok:pOk, total_nok:pNok, conformidade:conf, noks:pNoks, procs:pProcs };
+    });
+
+    const totalItems = totalOk+totalNok;
+    const record = {
+      data: now.toISOString().split('T')[0],
+      turno: state.turno,
+      inspetor: state.user,
+      total_ok: totalOk,
+      total_nok: totalNok,
+      conformidade: totalItems ? Math.round(totalOk/totalItems*100) : 100,
+      total_intervencoes: totalProc,
+      postos: postosData,
+      alertas: alertFeed,
+      severidades: sevCounts
+    };
+
+    const r = await fetch(SB_URL+'/rest/v1/auditorias', {
+      method:'POST',
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify(record)
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return true;
+  } catch(e) {
+    console.error('Supabase save error:', e);
+    return false;
+  }
+}
+
+// ══ REPORT ══
+function showReport(){
+  const now=new Date();
+  document.getElementById('r-date').textContent=now.toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  let totalOk=0,totalNok=0,totalProc=0;
+  postos.forEach(pid=>{activeModulesForPosto(pid).forEach(m=>{const ms=state.postoData[pid]?.[m.id];if(!ms)return;ms.items.forEach(s=>{if(s.status==='ok')totalOk++;if(s.status==='nok')totalNok++;});totalProc+=ms.procs.length;});});
+  const totalItems=totalOk+totalNok;
+  const rate=totalItems?Math.round(totalOk/totalItems*100):100;
+
+  let html=`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);margin-bottom:.75rem;">${state.user} · Turno ${state.turno} · ${now.toLocaleDateString('pt-PT',{weekday:'long',day:'2-digit',month:'long'})}</div>
+  <div class="report-kpis">
+    <div class="kpi"><div class="kpi-val g">${totalOk}</div><div class="kpi-lbl">OK</div></div>
+    <div class="kpi"><div class="kpi-val r">${totalNok}</div><div class="kpi-lbl">NOK</div></div>
+    <div class="kpi"><div class="kpi-val ${rate>=90?'g':'r'}">${rate}%</div><div class="kpi-lbl">conformidade</div></div>
+  </div>`;
+
+  // severity summary
+  const hasSevs=SEVS.some(s=>globalSevCount(s.id)>0);
+  if(hasSevs){
+    html+=`<div class="sec-title">Resumo por gravidade</div><div class="report-sev-summary">`;
+    SEVS.forEach(s=>{
+      const c=globalSevCount(s.id);
+      if(c===0)return;
+      html+=`<div class="rss-row ${s.cls}"><div class="rss-label">${s.icon} ${s.label}</div><div class="rss-count" style="color:${s.color}">${c}</div></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  html+=`<div class="sec-title">Por posto</div>`;
+  postos.forEach(pid=>{
+    const pd=state.postoData[pid];
+    const activeMods=activeModulesForPosto(pid);
+    let pNoks=[],pProcs=[];
+    activeMods.forEach(m=>{
+      const ms=pd?.[m.id];
+      if(!ms||!ms.done)return;
+      ms.noks.forEach(n=>pNoks.push({mod:m.name,...n}));
+      ms.procs.forEach(p=>pProcs.push({mod:m.name,...p}));
+    });
+    const isDone=activeMods.every(m=>pd?.[m.id]?.done);
+    const hasAlert=pNoks.length>0||pProcs.length>0;
+    const worst=pNoks.length?Math.min(...pNoks.map(n=>n.sev??4)):null;
+    const tagCls=!isDone?'skip':hasAlert?'nok':'ok';
+    const tagText=!isDone?'incompleto':hasAlert?(pNoks.length+pProcs.length)+' alerta(s)':'conforme';
+
+    html+=`<div class="report-posto-block"><div class="rpb-head"><div class="rpb-name">${pid}</div><span class="rpb-tag ${tagCls}">${tagText}</span>${worst!==null?`<span class="sev-pill ${sevCls(worst)}" style="font-size:9px;">${sevIcon(worst)} ${sevLabel(worst)}</span>`:''}</div>`;
+
+    // sort noks by severity (worst first)
+    pNoks.sort((a,b)=>(a.sev??4)-(b.sev??4));
+
+    // materia form data summary
+    const matMs=pd?.['materia'];
+    if(matMs?.done&&matMs?.formData?.ref){
+      const fd=matMs.formData;
+      const today=new Date();today.setHours(0,0,0,0);
+      const exp=fd.validade?new Date(fd.validade):null;
+      if(exp)exp.setHours(0,0,0,0);
+      const expired=exp&&exp<today;
+      html+=`<div style="background:var(--bg3);border:0.5px solid ${expired?'var(--sev0)':'var(--border2)'};border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:5px;">⬛ MATÉRIA-PRIMA · ${fd.savedAt||''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);">
+          <div><span style="color:var(--text3);">REF</span> ${fd.ref}</div>
+          <div><span style="color:var(--text3);">LOTE</span> ${fd.lote}</div>
+          ${fd.bobine?`<div><span style="color:var(--text3);">BOBINE</span> ${fd.bobine}</div>`:''}
+          ${fd.validade?`<div style="color:${expired?'var(--sev0)':'inherit'}"><span style="color:var(--text3);">VALIDADE</span> ${fd.validade}${expired?' 🛑':''}</div>`:''}
+        </div>
+        ${fd.obs?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);margin-top:4px;">${fd.obs}</div>`:''}
+        ${fd.photo?`<img src="${fd.photo}" style="width:100%;border-radius:6px;margin-top:7px;max-height:120px;object-fit:cover;" />`:''}
+      </div>`;
+    }
+    pNoks.forEach(n=>{
+      html+=`<div class="rpb-nok-item" style="background:var(--sev${n.sev??4}-d);border-color:var(--sev${n.sev??4})">
+        <div class="rpb-nok-header"><span class="sev-pill ${sevCls(n.sev??4)}" style="font-size:9px;">${sevIcon(n.sev??4)} ${sevLabel(n.sev??4)}</span><span class="rpb-nok-mod">${n.mod}${n.time?' · '+n.time:''}</span></div>
+        <div class="rpb-nok-text">${n.text}</div>
+        ${n.obs?`<div class="rpb-nok-obs">${n.obs}</div>`:''}
+      </div>`;
+    });
+    pProcs.forEach(p=>{
+      html+=`<div class="rpb-proc-item"><div class="rpb-proc-mod">${p.mod} · INTERVENÇÃO PROCESSO</div><div class="rpb-proc-text">${p.text}</div>${p.desc?`<div class="rpb-proc-detail">${p.desc}</div>`:''}<div class="rpb-proc-detail" style="color:var(--purple);margin-top:3px;">→ ${p.who.join(', ')||'—'}</div></div>`;
+    });
+    if(!pNoks.length&&!pProcs.length&&isDone)html+=`<div style="font-size:12px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:.4rem;">✓ Sem anomalias</div>`;
+    html+=`</div>`;
+  });
+
+  html+=`<div class="report-sign">Auditoria encerrada por<b>${state.user} · Turno ${state.turno}</b></div>`;
+  html+=`<div id="save-status" style="margin-top:1rem;padding:10px 13px;border-radius:var(--r);font-family:'DM Mono',monospace;font-size:11px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);text-align:center;">⏳ A guardar relatório na base de dados...</div>`;
+  document.getElementById('report-body').innerHTML=html;
+  showScreen('s-report');
+
+  // Save to Supabase
+  saveToSupabase().then(ok=>{
+    const el=document.getElementById('save-status');
+    if(!el) return;
+    if(ok){
+      el.style.background='var(--green-d)';el.style.borderColor='var(--green)';el.style.color='var(--green)';
+      el.textContent='✓ Relatório guardado na base de dados.';
+    } else {
+      el.style.background='var(--red-d)';el.style.borderColor='var(--red)';el.style.color='var(--red)';
+      el.innerHTML='✕ Erro ao guardar. Verifica a ligação à internet e que a tabela foi criada.<br><small style="opacity:.7">Ver ficheiro setup.sql</small>';
+    }
+  });
+}
+
+// ══ ADD POSTO ══
+function openAddPosto(){document.getElementById('modal-add-posto').classList.add('on');document.getElementById('new-posto-input').value='';}
+function closeAddPosto(confirm){
+  if(confirm){const v=document.getElementById('new-posto-input').value.trim();if(v&&!postos.includes(v)){postos.push(v);initPosto(v);renderHome();toast('Posto '+v+' adicionado','g');}else if(!v)toast('Escreve um nome','r');else toast('Posto já existe','r');}
+  document.getElementById('modal-add-posto').classList.remove('on');
+}
+
+// ══ ADMIN ══
+function switchAdminTab(tab,btn){
+  ['postos','modulos','notificacoes'].forEach(t=>document.getElementById('admin-tab-'+t).style.display=t===tab?'block':'none');
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  if(tab==='postos')renderAdminPostos();
+  if(tab==='modulos')renderAdminModules();
+  if(tab==='notificacoes')renderAdminNotifs();
+}
+function renderAdminPostos(){
+  const list=document.getElementById('admin-postos-list');list.innerHTML='';
+  postos.forEach(pid=>{
+    const cfg=getPostoModules(pid);
+    const activeMods=MODULES.filter(m=>cfg[m.id]!==false).length;
+    const card=document.createElement('div');card.className='admin-posto-card';card.id='apc-'+pid;
+    card.innerHTML=`<div class="admin-posto-head" onclick="toggleAdminPosto('${pid}')"><div class="admin-posto-name">${pid}</div><div class="admin-posto-meta">${activeMods}/${MODULES.length} módulos</div><div style="font-size:11px;color:var(--text3);margin-left:4px;">▾</div></div>
+    <div class="admin-posto-body" id="apb-${pid}">
+      <div class="admin-posto-rename"><input type="text" id="rename-${pid}" value="${pid}"><button class="btn-rename" onclick="renamePosto('${pid}')">Renomear</button></div>
+      <div class="admin-mod-label">Módulos activos neste posto</div>
+      <div class="admin-mod-toggles">${MODULES.map(m=>`<div class="mod-toggle-row"><div><div class="mod-toggle-name">${m.icon} ${m.name}</div><div class="mod-toggle-sub">${m.items.length} itens</div></div><div class="tog-sm${cfg[m.id]!==false?' on':''}" id="tog-${pid}-${m.id}" onclick="togglePostoMod('${pid}','${m.id}',this)"><div class="tog-sm-k"></div></div></div>`).join('')}</div>
+      <button class="btn-del-posto" onclick="deletePosto('${pid}')">Remover posto</button>
+    </div>`;
+    list.appendChild(card);
+  });
+}
+function toggleAdminPosto(pid){document.getElementById('apb-'+pid).classList.toggle('open');}
+function renamePosto(pid){
+  const newName=document.getElementById('rename-'+pid).value.trim();
+  if(!newName){toast('Nome vazio','r');return;}if(postos.includes(newName)&&newName!==pid){toast('Já existe','r');return;}
+  const idx=postos.indexOf(pid);postos[idx]=newName;
+  if(state.postoData[pid]){state.postoData[newName]=state.postoData[pid];delete state.postoData[pid];}
+  if(adminCfg.postoModules[pid]){adminCfg.postoModules[newName]=adminCfg.postoModules[pid];delete adminCfg.postoModules[pid];}
+  renderAdminPostos();toast('Renomeado para '+newName,'g');
+}
+function togglePostoMod(pid,mid,tog){
+  const cfg=getPostoModules(pid);cfg[mid]=cfg[mid]===false?true:false;
+  tog.classList.toggle('on',cfg[mid]!==false);
+  document.getElementById('apc-'+pid).querySelector('.admin-posto-meta').textContent=MODULES.filter(m=>cfg[m.id]!==false).length+'/'+MODULES.length+' módulos';
+}
+function deletePosto(pid){
+  if(!confirm('Remover '+pid+'?'))return;
+  postos=postos.filter(p=>p!==pid);delete state.postoData[pid];delete adminCfg.postoModules[pid];
+  renderAdminPostos();toast('Posto '+pid+' removido','r');
+}
+function renderAdminModules(){
+  const list=document.getElementById('admin-modules-list');list.innerHTML='';
+  MODULES.forEach((m,mi)=>{
+    const card=document.createElement('div');card.className='admin-module-card';
+    card.innerHTML=`<div class="admin-module-head" onclick="this.nextElementSibling.classList.toggle('open')"><div style="font-size:16px">${m.icon}</div><div style="flex:1;font-size:13px;font-weight:600;">${m.name}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);">${m.items.length} itens</div></div>
+    <div class="admin-module-body"><div style="margin-top:10px;" id="items-list-${m.id}"></div><button class="btn-add-item" onclick="addModuleItem('${m.id}')">+ Adicionar item</button></div>`;
+    list.appendChild(card);renderModuleItems(m.id);
+  });
+}
+function renderModuleItems(mid){
+  const m=MODULES.find(x=>x.id===mid);const cont=document.getElementById('items-list-'+mid);if(!cont)return;cont.innerHTML='';
+  m.items.forEach((item,i)=>{
+    const row=document.createElement('div');row.className='admin-item-row';row.id=`air-${mid}-${i}`;
+    row.innerHTML=`<div class="admin-item-texts"><div class="admin-item-t">${item.t}</div><div class="admin-item-s">${item.s}</div>
+    <div class="admin-item-edit" id="aie-${mid}-${i}"><input type="text" id="aie-t-${mid}-${i}" value="${item.t}"><textarea id="aie-s-${mid}-${i}">${item.s}</textarea>
+    <div class="admin-item-actions"><button class="btn-xs save" onclick="saveItemEdit('${mid}',${i})">Guardar</button><button class="btn-xs" onclick="cancelItemEdit('${mid}',${i})">Cancelar</button><button class="btn-xs del" onclick="deleteItem('${mid}',${i})">Remover</button></div></div></div>
+    <button class="btn-xs" onclick="editItem('${mid}',${i})" id="btn-edit-${mid}-${i}">Editar</button>`;
+    cont.appendChild(row);
+  });
+}
+function editItem(mid,i){document.getElementById(`aie-${mid}-${i}`).classList.add('open');document.getElementById(`btn-edit-${mid}-${i}`).style.display='none';}
+function cancelItemEdit(mid,i){document.getElementById(`aie-${mid}-${i}`).classList.remove('open');document.getElementById(`btn-edit-${mid}-${i}`).style.display='';}
+function saveItemEdit(mid,i){
+  const m=MODULES.find(x=>x.id===mid);
+  const newT=document.getElementById(`aie-t-${mid}-${i}`).value.trim();
+  const newS=document.getElementById(`aie-s-${mid}-${i}`).value.trim();
+  if(!newT){toast('Descrição vazia','r');return;}
+  m.items[i]={t:newT,s:newS};renderModuleItems(mid);toast('Item atualizado','g');
+}
+function deleteItem(mid,i){
+  const m=MODULES.find(x=>x.id===mid);m.items.splice(i,1);renderModuleItems(mid);toast('Item removido','r');
+}
+function addModuleItem(mid){
+  const m=MODULES.find(x=>x.id===mid);m.items.push({t:'Novo item de verificação',s:'Especificação aqui'});
+  renderModuleItems(mid);setTimeout(()=>editItem(mid,m.items.length-1),50);
+}
+function renderAdminNotifs(){
+  renderNotifList('nc',adminCfg.notifNC,'admin-notif-nc-list');
+  renderNotifList('proc',adminCfg.notifProc,'admin-notif-proc-list');
+}
+function renderNotifList(type,arr,cid){
+  const cont=document.getElementById(cid);cont.innerHTML='';
+  arr.forEach((name,i)=>{const card=document.createElement('div');card.className='admin-notif-card';card.innerHTML=`<div class="admin-notif-name">${name}</div><button class="btn-del-notif" onclick="delNotif('${type}',${i})">Remover</button>`;cont.appendChild(card);});
+}
+function addNotif(type){
+  const input=document.getElementById('new-notif-'+type);const v=input.value.trim();
+  if(!v){toast('Escreve um nome','r');return;}
+  if(type==='nc')adminCfg.notifNC.push(v);else adminCfg.notifProc.push(v);
+  input.value='';renderAdminNotifs();toast(v+' adicionado','g');
+}
+function delNotif(type,i){if(type==='nc')adminCfg.notifNC.splice(i,1);else adminCfg.notifProc.splice(i,1);renderAdminNotifs();}
+
+function closeValidadeModal(){document.getElementById('modal-validade-expired').classList.remove('on');}
+function confirmValidadeNotif(){
+  const notified=[...document.querySelectorAll('#modal-validade-chips .chip.on')].map(b=>b.textContent);
+  closeValidadeModal();
+  if(notified.length)toast('Notificado: '+notified.join(', '),'r');
+}
+
+// ══ MANUAL ALERTS ══
+let _manualAlertType='critical';
+function openManualAlert(){
+  _manualAlertType='critical';
+  document.getElementById('manual-alert-title').textContent='Alerta crítico';
+  document.getElementById('manual-alert-title').style.color='var(--sev0)';
+  document.getElementById('manual-alert-confirm-btn').style.background='var(--sev0)';
+  document.getElementById('manual-alert-desc').value='';
+  const sel=document.getElementById('manual-alert-posto');
+  sel.innerHTML=postos.map(p=>`<option>${p}</option>`).join('');
+  document.getElementById('manual-alert-chips').innerHTML=adminCfg.notifNC.map(n=>`<button class="chip" onclick="this.classList.toggle('on')">${n}</button>`).join('');
+  document.getElementById('modal-manual-alert').classList.add('on');
+}
+function openClientAlert(){
+  _manualAlertType='client';
+  document.getElementById('manual-alert-title').textContent='Reclamação de cliente';
+  document.getElementById('manual-alert-title').style.color='var(--amber)';
+  document.getElementById('manual-alert-confirm-btn').style.background='var(--amber)';
+  document.getElementById('manual-alert-desc').value='';
+  const sel=document.getElementById('manual-alert-posto');
+  sel.innerHTML=postos.map(p=>`<option>${p}</option>`).join('');
+  document.getElementById('manual-alert-chips').innerHTML=adminCfg.notifNC.map(n=>`<button class="chip" onclick="this.classList.toggle('on')">${n}</button>`).join('');
+  document.getElementById('modal-manual-alert').classList.add('on');
+}
+function closeManualAlert(confirm){
+  document.getElementById('modal-manual-alert').classList.remove('on');
+  if(confirm){
+    const posto=document.getElementById('manual-alert-posto').value;
+    const desc=document.getElementById('manual-alert-desc').value.trim();
+    if(!desc){toast('Descrição obrigatória','r');document.getElementById('modal-manual-alert').classList.add('on');return;}
+    const time=new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+    alertFeed.unshift({posto,text:desc,time,manual:true,type:_manualAlertType,sev:_manualAlertType==='client'?2:0});
+    const lbl=_manualAlertType==='client'?'Reclamação':'Alerta crítico';
+    toast(`[${posto}] ${lbl} registado`,'r');
+    renderMonitor();
+  }
+}
+
+// ══ TOAST ══
+function toast(msg,type=''){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';
+  setTimeout(()=>t.className='toast '+type,3000);
+}
+</script>
+</body>
+</html>
