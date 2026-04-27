@@ -367,7 +367,7 @@ select option{background:#1b2120;}
     <div class="logo-tag">AuditSMC v4.0</div>
     <div class="login-h">Auditoria<br>Diária <span>SMC</span></div>
     <div class="fl"><div class="fl-label">Inspetor</div>
-      <select id="l-user"><option value="">Selecionar...</option><option>Carlos Ferreira</option><option>Ana Sousa</option><option>Miguel Costa</option></select></div>
+      <select id="l-user"><option value="">Selecionar...</option><option>Nelson Costa</option><option>Rui Almeida</option><option>Paulo Lima</option></select></div>
     <div class="fl"><div class="fl-label">Turno</div>
       <select id="l-turno"><option value="Manhã">Manhã (06h–14h)</option><option value="Tarde">Tarde (14h–22h)</option><option value="Noite">Noite (22h–06h)</option></select></div>
     <button class="btn-p" onclick="doLogin()">Iniciar auditoria</button>
@@ -589,9 +589,9 @@ const SEVS = [
 // ══ MODULES ══
 const MODULES = [
   { id:'materia', icon:'⬛', name:'Matéria-prima', sub:'7 pts', items:[
-    {t:'Certificado de conformidade do lote presente',s:'Ficha técnica do fornecedor obrigatória'},
+    {t:'De acordo com Ficha de Posto?',s:'A trabalhar com a matéria-prima correta para a peça.'},
     {t:'Data de validade dentro do prazo',s:'SMC: máx. 6 meses em câmara fria'},
-    {t:'Temperatura de armazenamento registada',s:'5–15 °C; verificar datalogger'},
+    {t:'Data de validade dentro do prazo',s:'5–15 °C; verificar datalogger'},
     {t:'Ausência de contaminação visual',s:'Inspecionar embalagem e material'},
     {t:'Gramagem do SMC dentro do especificado',s:'Tolerância ±5% do nominal'},
     {t:'Identificação do lote legível e rastreável',s:'Ref. fornecedor + data receção visíveis'},
@@ -1120,7 +1120,7 @@ function showProjection(){
       if(noks.length>3)html+=`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);padding-left:12px;">+${noks.length-3} mais...</div>`;
     }
     html+=`</div>`;
-  });
+  }});
 
   // manual alerts in projection
   const manualAlerts=alertFeed.filter(a=>a.manual);
