@@ -957,6 +957,22 @@ function updateSaveBtn(){
   document.getElementById('btn-save').disabled=!allOk;
 }
 
+function saveChecklist(){
+  const pid=state.currentPosto,mid=state.currentModule;
+  const m=MODULES.find(x=>x.id===mid);
+  const ms=state.postoData[pid][mid];
+  ms.noks=ms.items.map((s,i)=>s.status==='nok'?{text:m.items[i].t,obs:s.obs,sev:s.sev??4,blockLote:s.blockLote,time:new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}:null).filter(Boolean);
+  ms.procs=ms.items.map((s,i)=>s.needProc?{text:m.items[i].t,desc:s.procDesc,who:s.procWho||[]}:null).filter(Boolean);
+  ms.done=true;
+  // add to alert feed
+  ms.noks.forEach(n=>alertFeed.unshift({posto:pid,mod:m.name,text:n.text,sev:n.sev,obs:n.obs,time:n.time}));
+  const hasNok=ms.noks.length>0;
+  const hasProc=ms.procs.length>0;
+  if(hasNok)showNokModal();
+  else if(hasProc)showProcModal();
+  else{renderPosto();showScreen('s-posto');toast('Módulo OK — sem anomalias','g');}
+}
+
 // ══ MATÉRIA-PRIMA FORM ══
 function openMateria(){
   const pid=state.currentPosto;
