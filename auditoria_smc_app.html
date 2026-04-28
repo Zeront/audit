@@ -371,7 +371,7 @@ select option{background:#1b2120;}
     <div class="fl"><div class="fl-label">Turno</div>
       <select id="l-turno"><option value="Manhã">Manhã (06h–14h)</option><option value="Tarde">Tarde (14h–22h)</option><option value="Noite">Noite (22h–06h)</option></select></div>
     <button class="btn-p" onclick="doLogin()">Iniciar auditoria</button>
-    <button class="btn-ghost" onclick="showScreen('s-admin');renderAdminPostos();">⚙ Painel de administração</button>
+    <button class="btn-ghost" onclick="openAdmin()">⚙ Painel de administração</button>
   </div>
   </div>
 </div>
@@ -520,6 +520,7 @@ select option{background:#1b2120;}
   <div class="topbar">
     <button class="btn-back" onclick="showScreen('s-login')">← Voltar</button>
     <div class="topbar-title">Administração</div>
+    <div id="cfg-status" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);transition:opacity .5s;opacity:0;flex-shrink:0;"></div>
   </div>
   <div style="padding:.5rem 1.1rem 0;">
     <div class="admin-tabs">
@@ -707,6 +708,60 @@ const MODULES = [
   ]},
 ];
 
+// ══ CONFIG PERSISTENCE (Supabase) ══
+async function cfgLoad(){
+  try {
+    const r = await fetch(SB_URL+'/rest/v1/configuracoes?id=in.(postos,modulos,notificacoes)', {
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY }
+    });
+    if(!r.ok) return;
+    const rows = await r.json();
+    rows.forEach(row=>{
+      if(row.id==='postos'){
+        postos = row.dados.lista || postos;
+        adminCfg.postoModules = row.dados.modulos || {};
+      }
+      if(row.id==='modulos'){
+        const saved = row.dados;
+        MODULES.forEach(m=>{
+          if(saved[m.id] && !m.formModule) m.items = saved[m.id];
+        });
+      }
+      if(row.id==='notificacoes'){
+        adminCfg.notifNC = row.dados.nc || adminCfg.notifNC;
+        adminCfg.notifProc = row.dados.proc || adminCfg.notifProc;
+      }
+    });
+    showCfgStatus('✓ Configurações carregadas', 'g');
+  } catch(e){ showCfgStatus('⚠ Sem ligação — configurações locais', 'a'); }
+}
+
+async function cfgSave(id, dados){
+  try {
+    const r = await fetch(SB_URL+'/rest/v1/configuracoes', {
+      method:'POST',
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ id, dados, updated_at: new Date().toISOString() })
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    showCfgStatus('✓ Guardado', 'g');
+  } catch(e){ showCfgStatus('✕ Erro ao guardar', 'r'); }
+}
+
+function cfgSavePostos(){ cfgSave('postos',{ lista: postos, modulos: adminCfg.postoModules }); }
+function cfgSaveModulos(){ const d={}; MODULES.forEach(m=>{ if(!m.formModule) d[m.id]=m.items; }); cfgSave('modulos',d); }
+function cfgSaveNotifs(){ cfgSave('notificacoes',{ nc: adminCfg.notifNC, proc: adminCfg.notifProc }); }
+
+function showCfgStatus(msg, type){
+  const el = document.getElementById('cfg-status');
+  if(!el) return;
+  const cols = {g:'var(--green)',r:'var(--red)',a:'var(--amber)'};
+  el.textContent = msg;
+  el.style.color = cols[type]||'var(--text2)';
+  el.style.opacity = '1';
+  setTimeout(()=>{ el.style.opacity='0'; }, 2500);
+}
+
 // ══ STATE ══
 let postos = ['P1000','P1001','Banca'];
 let adminCfg = {
@@ -740,15 +795,26 @@ function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classL
 function goHome(){renderHome();showScreen('s-home');}
 function goPosto(){renderPosto();showScreen('s-posto');}
 
+async function openAdmin(){
+  showScreen('s-admin');
+  renderAdminPostos();
+  showCfgStatus('A carregar...','a');
+  await cfgLoad();
+  renderAdminPostos();
+}
+
 // ══ LOGIN ══
 function doLogin(){
   const u=document.getElementById('l-user').value;
   if(!u){toast('Selecione um inspetor','r');return;}
   state.user=u;state.turno=document.getElementById('l-turno').value;
   alertFeed=[];
-  postos.forEach(p=>initPosto(p));
-  renderHome();showScreen('s-home');
-  startClock();
+  // Load latest config before starting
+  cfgLoad().then(()=>{
+    postos.forEach(p=>initPosto(p));
+    renderHome();showScreen('s-home');
+    startClock();
+  });
 }
 
 function startClock(){
@@ -1522,7 +1588,7 @@ function showReport(){
 // ══ ADD POSTO ══
 function openAddPosto(){document.getElementById('modal-add-posto').classList.add('on');document.getElementById('new-posto-input').value='';}
 function closeAddPosto(confirm){
-  if(confirm){const v=document.getElementById('new-posto-input').value.trim();if(v&&!postos.includes(v)){postos.push(v);initPosto(v);renderHome();toast('Posto '+v+' adicionado','g');}else if(!v)toast('Escreve um nome','r');else toast('Posto já existe','r');}
+  if(confirm){const v=document.getElementById('new-posto-input').value.trim();if(v&&!postos.includes(v)){postos.push(v);initPosto(v);renderHome();toast('Posto '+v+' adicionado','g');cfgSavePostos();}else if(!v)toast('Escreve um nome','r');else toast('Posto já existe','r');}
   document.getElementById('modal-add-posto').classList.remove('on');
 }
 
@@ -1558,16 +1624,19 @@ function renamePosto(pid){
   if(state.postoData[pid]){state.postoData[newName]=state.postoData[pid];delete state.postoData[pid];}
   if(adminCfg.postoModules[pid]){adminCfg.postoModules[newName]=adminCfg.postoModules[pid];delete adminCfg.postoModules[pid];}
   renderAdminPostos();toast('Renomeado para '+newName,'g');
+  cfgSavePostos();
 }
 function togglePostoMod(pid,mid,tog){
   const cfg=getPostoModules(pid);cfg[mid]=cfg[mid]===false?true:false;
   tog.classList.toggle('on',cfg[mid]!==false);
   document.getElementById('apc-'+pid).querySelector('.admin-posto-meta').textContent=MODULES.filter(m=>cfg[m.id]!==false).length+'/'+MODULES.length+' módulos';
+  cfgSavePostos();
 }
 function deletePosto(pid){
   if(!confirm('Remover '+pid+'?'))return;
   postos=postos.filter(p=>p!==pid);delete state.postoData[pid];delete adminCfg.postoModules[pid];
   renderAdminPostos();toast('Posto '+pid+' removido','r');
+  cfgSavePostos();
 }
 function renderAdminModules(){
   const list=document.getElementById('admin-modules-list');list.innerHTML='';
@@ -1597,13 +1666,16 @@ function saveItemEdit(mid,i){
   const newS=document.getElementById(`aie-s-${mid}-${i}`).value.trim();
   if(!newT){toast('Descrição vazia','r');return;}
   m.items[i]={t:newT,s:newS};renderModuleItems(mid);toast('Item atualizado','g');
+  cfgSaveModulos();
 }
 function deleteItem(mid,i){
   const m=MODULES.find(x=>x.id===mid);m.items.splice(i,1);renderModuleItems(mid);toast('Item removido','r');
+  cfgSaveModulos();
 }
 function addModuleItem(mid){
   const m=MODULES.find(x=>x.id===mid);m.items.push({t:'Novo item de verificação',s:'Especificação aqui'});
   renderModuleItems(mid);setTimeout(()=>editItem(mid,m.items.length-1),50);
+  cfgSaveModulos();
 }
 function renderAdminNotifs(){
   renderNotifList('nc',adminCfg.notifNC,'admin-notif-nc-list');
@@ -1618,8 +1690,13 @@ function addNotif(type){
   if(!v){toast('Escreve um nome','r');return;}
   if(type==='nc')adminCfg.notifNC.push(v);else adminCfg.notifProc.push(v);
   input.value='';renderAdminNotifs();toast(v+' adicionado','g');
+  cfgSaveNotifs();
 }
-function delNotif(type,i){if(type==='nc')adminCfg.notifNC.splice(i,1);else adminCfg.notifProc.splice(i,1);renderAdminNotifs();}
+function delNotif(type,i){
+  if(type==='nc')adminCfg.notifNC.splice(i,1);else adminCfg.notifProc.splice(i,1);
+  renderAdminNotifs();
+  cfgSaveNotifs();
+}
 
 function closeValidadeModal(){document.getElementById('modal-validade-expired').classList.remove('on');}
 function confirmValidadeNotif(){
